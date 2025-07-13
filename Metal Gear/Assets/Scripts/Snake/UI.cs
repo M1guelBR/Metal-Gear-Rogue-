@@ -89,7 +89,7 @@ public class UI : MonoBehaviour
         if (snake.objEnMano != null)
             realObjInd = snake.indObj;
         
-        puntero.gameObject.SetActive(snake.GetButton("Apuntar") && snake.trueFPS && snake.arrast);
+        puntero.gameObject.SetActive(snake.GetButton("Apuntar") && snake.trueFPS && snake.armaEnMano != null && !snake.binoc);
         vidaBarra.fillAmount = (snake.vida / 100);
         invArmas.SetActive(realInd >= 0);
         invObj.SetActive(realObjInd >= 0);

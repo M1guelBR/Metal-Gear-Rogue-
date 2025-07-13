@@ -37,7 +37,8 @@ public class VistaSoldado : MonoBehaviour
                 bool caja = snakeJ.caja;
                 bool cajaCamuf = snakeJ.caja && !snakeJ.enMovimiento();
 
-                Vector3 jugPos = jugador.GetComponent<CharacterController>().center + jugador.position;
+                //Vector3 jugPos = jugador.GetComponent<CharacterController>().center + jugador.position;
+                Vector3 jugPos = jugador.GetComponent<CapsuleCollider>().center + jugador.position;
                 Vector3 cabezaPos = snakeJ.cabeza.transform.position;
                 Vector3 piesPos = jugPos + (jugPos - cabezaPos);
                 Debug.DrawRay(transform.position, cabezaPos - transform.position, Color.white);

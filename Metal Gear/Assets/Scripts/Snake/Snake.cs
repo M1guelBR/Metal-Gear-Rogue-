@@ -16,7 +16,9 @@ public class Snake : MonoBehaviour
 {
     //----------------------------COMPONENTES
     [Header("COMPONENTES")]
-    CharacterController controller;
+    //CharacterController controller;
+    Rigidbody rb;
+    public CapsuleCollider col;
 
     
     PlayerInput playerInput;
@@ -197,8 +199,9 @@ public class Snake : MonoBehaviour
         tiempoPressAg = tiempoCtrlArr;
         actualDistC = dCam;
 
-        controller = this.GetComponent<CharacterController>();
-        controller.height = alturaW;
+        //controller = this.GetComponent<CharacterController>();
+        rb = this.GetComponent<Rigidbody>();
+        //controller.height = alturaW;
 
 
         playerInput = this.GetComponent<PlayerInput>();
@@ -260,336 +263,7 @@ public class Snake : MonoBehaviour
         }
 
         //Time.timeScale = timeSc;
-        //Calculo Movimiento
-        {
-            bool lockMove = ((miraObjetos && indObj != -1) || (miraArmas && indArm != -1)) || binoc || tiempoDetecCQC < 0.1f || Interroga;
-            Vector3 dir = new Vector3(GetAxis("Horizontal"), 0, GetAxis("Vertical")) * (lockMove ? 0 : 1);
-            //Te puedes mover en primera persona
-            dir = Vector3.ClampMagnitude(dir, 1);
-
-            {
-                if (GetButton("Walk"))
-                {
-                    dir = dir.normalized * 0.5f;
-                }
-                dirS = Vector3.MoveTowards(dirS, dir, (dir.magnitude > dirS.magnitude ? inputAcel : inputDecel) * Time.deltaTime);
-
-            }
-
-            //Control de Agacharse
-            if (!caja)
-            {
-                if (GetButton("Agach") && !pressAg && tiempoPressAg == tiempoCtrlArr)
-                {
-                    pressAg = true;
-                    estadoInicial = (agach ? 1 : 0) + (arrast ? 1 : 0);
-                    if (!agach || arrast)
-                        CambiaPostura();
-
-                }
-                if (movAg && tiempoPressAg > 0 && dir == Vector3.zero && agach && !arrast)
-                {
-                    movAg = false;
-                    pressAg = false;
-                    tiempoPressAg = tiempoCtrlArr;
-                }
-                if (!GetButton("Agach") && pressAg && !(agach && !arrast && dir != Vector3.zero))
-                {
-                    if (tiempoPressAg > 0 && estadoInicial == 1 && !snakeAnimator.GetBool("Pared"))
-                    {
-                        CambiaPostura();
-                    }
-
-                    pressAg = false;
-
-                    tiempoPressAg = tiempoCtrlArr;
-                }
-
-                if (pressAg && tiempoPressAg >= 0)
-                {
-
-                    tiempoPressAg -= Time.deltaTime;
-
-
-                    if (tiempoPressAg < 0)
-                    {
-                        movAg = false;
-                        CambiaPostura();
-                    }
-                }
-            }
-
-
-            //Movimiento Relativo a Camara
-            Vector3 f = Cam.forward; Vector3 r = Cam.right;
-            Vector3 a = new Vector3(f.x, 0, f.z).normalized;
-            if (a == Vector3.zero)
-            {
-                a = Cam.up;
-            }
-
-            if (FPS)
-            {
-                a = Rig.forward;
-                r = Rig.right;
-            }
-
-
-            movement = dirS.x * r + dirS.z * a;
-
-            //return;
-            //Velocidad
-            velocidad();
-
-            //Animaciones
-            vMag = new Vector2(controller.velocity.x, controller.velocity.z).magnitude;
-
-            //Sonido pasos
-            
-
-            if(HashInHashes("Standing_CQCStand_ParedIzq_ParedDer", snakeAnimator.GetCurrentAnimatorStateInfo(0).shortNameHash) && vMag > 0)
-            {
-                float t = snakeAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime;
-                t -= (int)t;
-
-                //print(t);
-
-                //Primer paso
-                if(t > 0.01f && t < 0.5f && !paso)
-                {
-                    paso = true;
-                    SonidoRadio(2.5f * vMag / sprVel);
-                    this.GetComponent<AudioSource>().PlayOneShot(pasoClip, vMag *.05f / sprVel);
-                    
-                }
-                else if(t > 0.5f && paso)
-                {
-                    paso = false;
-                    SonidoRadio(2.5f * vMag / sprVel);
-                    sonidoLocal.PlayOneShot(pasoClip, vMag * .05f / sprVel);
-                }
-
-            }
-            else
-            {
-                paso = false;
-            }
-
-            if (!pausa)
-            {
-
-                snakeAnimator.SetFloat("Velocidad", vMag);
-                snakeAnimator.SetFloat("FPS", FPS ? 1 : 0);
-                snakeAnimator.SetBool("Agachado", agach); snakeAnimator.SetBool("Arrastrado", arrast);
-                snakeAnimator.SetBool("Caja", caja);
-                snakeAnimator.SetBool("CQC", CQC);
-                colliderSnake.comprueba = tiempoCQC == 0;
-                if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("CQCThrow"))
-                    snakeAnimator.SetBool("Throw", false);
-
-
-            }
-            if (tiempoCadencia > 0)
-            {
-                tiempoCadencia -= Time.deltaTime;
-                if (tiempoCadencia < 0)
-                {
-                    partRef.SetActive(false);
-                    tiempoCadencia = 0;
-                }
-            }
-            if(snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("SinApuntar"))
-                snakeAnimator.SetBool("ArmaLista", GetButton("Apuntar") && armaEnMano != null && !caja && !binoc && !miraArmas && !miraObjetos);
-            else if(snakeAnimator.GetBool("ArmaLista") && (!GetButton("Apuntar") || armaEnMano == null || caja || binoc || miraArmas || miraObjetos))
-            {
-                snakeAnimator.SetBool("ArmaLista", false);
-            }
-
-            snakeAnimator.SetInteger("Balas", armaEnMano != null ? (balasFront[indArm].front) : 0);
-            if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar") || snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"))
-                snakeAnimator.SetBool("ArmaLista", true);
-
-
-            if (armaEnMano != null && armaEnMano.TipoObjeto() >= 1)
-            {
-
-                bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && balas[indArm] > 0;
-                bool condicionRecarga = (snakeAnimator.GetBool("Disparar") && snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"));
-
-                snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas && tiempoRondas <= 0.1f) || condicionRecarga);
-
-                if (armaEnMano.TipoObjeto() == 2)
-                    anguloArma = 10f;
-                else if (armaEnMano.TipoObjeto() == 1)
-                    anguloArma = 0;
-                
-            }
-
-            else if (armaEnMano != null && armaEnMano.TipoObjeto() == 0)
-            {
-
-                bool cuentaBalas = (armaEnMano.granada().remote == false) || (armaEnMano.granada().remote == true && GetButton("Apuntar"));
-                bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && (cuentaBalas && balas[indArm] > 0) == cuentaBalas;
-
-                snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas));
-            }
-
-
-            snakeAnimator.SetFloat("ArmaTipo", (armaEnMano != null && !caja && !binoc && !miraArmas && !miraObjetos) ? (armaEnMano.TipoObjeto() >= 1 ? armaEnMano.TipoObjeto() - 1 : .5f) : -1);
-
-            if (tiempoCQC > 0 && snakeAnimator.GetFloat("ArmaTipo") == 0)
-                snakeAnimator.SetFloat("ArmaTipo", .75f);
-
-            //Animaciones c4 plantar y detonar
-
-
-            if (!GetButton("Disparar") && !puedeDisparar && (armaEnMano.TipoObjeto() >= 1 || (armaEnMano.TipoObjeto() == 0 && !puedeDisparar && !snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar"))))
-            {
-
-                puedeDisparar = true;
-            }
-
-
-
-
-            //Controla Rotacion y moverse arrast
-            if (dir != Vector3.zero)
-            {
-                if (!FPS || !snakeAnimator.GetBool("Pared"))
-                    RotaRig();
-
-                //else if (snakeAnimator.GetBool("Pared"))
-                    //RotaRig(false);
-
-                if (agach && !arrast && (pressAg == false || levantaTiron == true))
-                {
-                    pressAg = true; estadoInicial = 1 + (levantaTiron ? 1 : 0);
-                    movAg = true;
-                }
-
-            }
-
-
-            //Movimiento Y
-            if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("CQCThrow") || snakeAnimator.GetNextAnimatorStateInfo(1).IsName("CQCThrow"))
-                movement = Vector3.zero;
-            else
-                movement *= vel;
-
-            movement.y = -9.8f;
-
-            if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Tirarse"))
-            {
-                //print(controller.velocity);
-                //Debug.Break();
-
-                movement = movTir;
-                movement.y -= Time.deltaTime;
-                movTir = movement;
-                //if (controller.isGrounded)
-                if(controller.isGrounded)
-                {
-                    snakeAnimator.SetBool("Grounded", true);
-                    movement = Vector3.zero;
-                }
-                if (movement.x != 0 || movement.z != 0)
-                    RotaRig(false);
-                Debug.DrawRay(transform.position, movTir, Color.blue);
-            }
-
-
-
-
-            //Pegarse a paredes
-            {
-
-                RaycastHit paredR;
-                Vector3 noYMov = new Vector3(movement.x, 0, movement.z);
-                if (dir != Vector3.zero && Physics.Raycast(transform.position, noYMov, out paredR, .25f, sueloLayers))
-                {
-
-                    RaycastHit lat1, lat2;
-                    Vector3 pos1 = Vector3.zero, pos2 = Vector3.zero;
-
-                    Vector3 dirLatR = Vector3.zero;
-                    Vector3 normPared = paredR.normal; normPared.y = 0;
-
-                    dirLatR = Vector3.Cross(Vector3.up, normPared);
-
-                    if (Physics.Raycast(transform.position + (controller.radius * transform.localScale.x * dirLatR), noYMov, out lat1, .25f, sueloLayers))
-                    {
-                        pos1 = lat1.point;
-                        Debug.DrawRay(pos1, lat1.normal, Color.green);
-                    }
-
-                    if (Physics.Raycast(transform.position - (controller.radius * transform.localScale.x * dirLatR), noYMov, out lat2, .25f, sueloLayers))
-                    {
-                        pos2 = lat2.point;
-                        Debug.DrawRay(pos2, lat2.normal, Color.green);
-                    }
-
-
-
-                    if (tPared > 0)
-                    {
-                        tPared -= Time.deltaTime;
-                        if (tPared < 0)
-                            tPared = 0;
-                    }
-                    else
-                    {
-
-                        snakeAnimator.SetBool("Pared", true);
-                        //Hacer que haga "espalda con espalda" con la pared
-
-                        if (pos1 == Vector3.zero) pos1 = paredR.point;
-                        if (pos2 == Vector3.zero) pos2 = paredR.point;
-
-
-                        Vector3 normalOpt = normPared - Vector3.Project(normPared, pos1 - paredR.point)
-                            -Vector3.Project(normPared, paredR.point - pos2);
-                        normalOpt.y = 0;
-                        Debug.DrawRay(transform.position, normalOpt);
-
-                        Rig.forward = -normalOpt;
-                        controller.radius = 0.1f;
-
-                        //Hacer que los movimientos leves no se procesen
-                        float margen = arrVel/2;
-                        Vector3 movOrt = movement - Vector3.Project(movement, normalOpt);
-                        movOrt.y = 0;
-                        //print(movOrt.magnitude);
-                        if (movOrt.magnitude < margen)
-                        {
-                            movement -= movOrt;
-                        }
-                        Debug.DrawRay(transform.position, new Vector3(movement.x, 0, movement.z), Color.red);
-
-                    }
-
-                }
-
-
-                else if (tPared != 0.5f)
-                {
-                    if (trueFPS && tPared == 0) //Rota solo si se ha pegado
-                        FPSrot += Vector3.up * 180;
-                    controller.radius = 0.16f;
-                    tPared = 0.5f;
-                    snakeAnimator.SetBool("Pared", false);
-                    //Si no choca porque se ha despegado, no rota
-                    if (dir == Vector3.zero)
-                        Rig.Rotate(0, 180, 0);
-                }
-
-                snakeAnimator.SetFloat("Hor", tPared == 0 ? (Vector3.Dot(movement, Rig.right)) : 0);
-            }
-
-        }
-
-        Debug.DrawRay(transform.position, movement, Color.green);
-        controller.Move(movement * Time.deltaTime);
-
+        
 
 
 
@@ -724,32 +398,6 @@ public class Snake : MonoBehaviour
         if (GetButtonDown("Info"))
             Informacion();
 
-        if (trueFPS || binoc)
-        {
-            FPSrot.x -= (GetAxis("Mouse Y") + (GetAxis("Cam Y") * Time.deltaTime)) * sensitivity * inversiones[3];
-
-            FPSrot.x = Mathf.Clamp(FPSrot.x, capFPSX.x, capFPSX.y);
-
-            FPSrot.y += (GetAxis("Mouse X") + (GetAxis("Cam X") * Time.deltaTime)) * sensitivity * inversiones[2];
-
-            if (tPared > 0)
-            {
-                cabeza.transform.eulerAngles = FPSrot;
-                Cam.eulerAngles = FPSrot;
-            }
-            else
-            {
-                cabeza.transform.eulerAngles = FPSrot + (180 * Vector3.up);
-                Cam.eulerAngles = FPSrot + (180 * Vector3.up);
-            }
-            Rig.eulerAngles = new Vector3(0, FPSrot.y, 0);
-
-            if (binoc)
-            {
-                Cam.GetComponent<Camera>().fieldOfView += ((GetButton("Disparar") ? 1 : 0) - (GetButton("Apuntar") ? 1 : 0)) * Time.deltaTime * (interfaz.maxZoom - interfaz.fov);
-                Cam.GetComponent<Camera>().fieldOfView = Mathf.Clamp(Cam.GetComponent<Camera>().fieldOfView, interfaz.maxZoom, interfaz.fov);
-            }
-        }
     }
 
     bool HashInHashes(string aHashear, int hashB)
@@ -827,13 +475,13 @@ public class Snake : MonoBehaviour
                 Cam.position = cabeza.transform.position + (0.15f * cabeza.transform.up);
             }
         }
-
         interfaz.CamaraRadar();
         if (caja)
             return;
 
         //Choque paredes
         {
+            /*
 
             if (arrast)
             {
@@ -868,7 +516,6 @@ public class Snake : MonoBehaviour
                 }
 
             }
-            /*
             print(180 - Vector3.Angle(dirRay, paredHit.normal));
             */
         }
@@ -932,7 +579,7 @@ public class Snake : MonoBehaviour
                             //Si es un collider que nos interesa
                             if(rayoSoldadoRehen.collider.name != "InteraccionSoldadoInc" && rayoSoldadoRehen.collider.tag == "SoldCol")
                             {
-                                bool sonido = rayoSoldadoRehen.collider.transform.parent.parent.GetComponent<Soldier>().Rehen(transform.position + controller.center, agach);
+                                bool sonido = rayoSoldadoRehen.collider.transform.parent.parent.GetComponent<Soldier>().Rehen(transform.position + col.center, agach);
                                 if (sonido) 
                                     this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Freeze"), .375f);
                             }
@@ -1169,8 +816,15 @@ public class Snake : MonoBehaviour
 
     }
 
+    bool isGrounded()
+    {
+        return false;
+    }
+
     private void FixedUpdate()
     {
+        Movimiento(Time.fixedDeltaTime);
+        vMag = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
         //Layer Collider
         if (GetButtonDown("Interactuar"))
         {
@@ -1203,6 +857,391 @@ public class Snake : MonoBehaviour
         {
             sonidoCollider.name += "_";
         }
+
+        if (trueFPS || binoc)
+        {
+            FPSrot.x -= (GetAxis("Mouse Y") + (GetAxis("Cam Y") * Time.deltaTime)) * sensitivity * inversiones[3];
+
+            FPSrot.x = Mathf.Clamp(FPSrot.x, capFPSX.x, capFPSX.y);
+
+            FPSrot.y += (GetAxis("Mouse X") + (GetAxis("Cam X") * Time.deltaTime)) * sensitivity * inversiones[2];
+
+            if (tPared > 0)
+            {
+                cabeza.transform.eulerAngles = FPSrot;
+                Cam.eulerAngles = FPSrot;
+            }
+            else
+            {
+                cabeza.transform.eulerAngles = FPSrot + (180 * Vector3.up);
+                Cam.eulerAngles = FPSrot + (180 * Vector3.up);
+            }
+            Rig.eulerAngles = new Vector3(0, FPSrot.y, 0);
+
+            if (binoc)
+            {
+                Cam.GetComponent<Camera>().fieldOfView += ((GetButton("Disparar") ? 1 : 0) - (GetButton("Apuntar") ? 1 : 0)) * Time.deltaTime * (interfaz.maxZoom - interfaz.fov);
+                Cam.GetComponent<Camera>().fieldOfView = Mathf.Clamp(Cam.GetComponent<Camera>().fieldOfView, interfaz.maxZoom, interfaz.fov);
+            }
+        }
+
+
+
+
+    }
+    //Calculo movimiento
+    void Movimiento(float deltaTime)
+    {
+        
+        bool lockMove = ((miraObjetos && indObj != -1) || (miraArmas && indArm != -1)) || binoc || tiempoDetecCQC < 0.1f || Interroga;
+        Vector3 dir = new Vector3(GetAxis("Horizontal"), 0, GetAxis("Vertical")) * (lockMove ? 0 : 1);
+        //Te puedes mover en primera persona
+        dir = Vector3.ClampMagnitude(dir, 1);
+        if (tPared == 0 && trueFPS)
+            dir.x = -dir.x;
+        {
+            if (GetButton("Walk"))
+            {
+                dir = dir.normalized * 0.5f;
+            }
+            dirS = Vector3.MoveTowards(dirS, dir, (dir.magnitude > dirS.magnitude ? inputAcel : inputDecel) * deltaTime);
+
+        }
+
+        //Control de Agacharse
+        if (!caja)
+        {
+            if (GetButton("Agach") && !pressAg && tiempoPressAg == tiempoCtrlArr)
+            {
+                pressAg = true;
+                estadoInicial = (agach ? 1 : 0) + (arrast ? 1 : 0);
+                if (!agach || arrast)
+                    CambiaPostura();
+
+            }
+            if (movAg && tiempoPressAg > 0 && dir == Vector3.zero && agach && !arrast)
+            {
+                movAg = false;
+                pressAg = false;
+                tiempoPressAg = tiempoCtrlArr;
+            }
+            if (!GetButton("Agach") && pressAg && !(agach && !arrast && dir != Vector3.zero))
+            {
+                if (tiempoPressAg > 0 && estadoInicial == 1 && !snakeAnimator.GetBool("Pared"))
+                {
+                    CambiaPostura();
+                }
+
+                pressAg = false;
+
+                tiempoPressAg = tiempoCtrlArr;
+            }
+
+            if (pressAg && tiempoPressAg >= 0)
+            {
+
+                tiempoPressAg -= deltaTime;
+
+
+                if (tiempoPressAg < 0)
+                {
+                    movAg = false;
+                    CambiaPostura();
+                }
+            }
+        }
+
+
+        //Movimiento Relativo a Camara
+        Vector3 f = Cam.forward; Vector3 r = Cam.right;
+        Vector3 a = new Vector3(f.x, 0, f.z).normalized;
+        if (a == Vector3.zero)
+        {
+            a = Cam.up;
+        }
+
+        if (FPS)
+        {
+            a = Rig.forward;
+            r = Rig.right;
+        }
+
+
+        movement = dirS.x * r + dirS.z * a;
+
+        //return;
+        //Velocidad
+        velocidad();
+
+        //Animaciones
+        //vMag = new Vector2(controller.velocity.x, controller.velocity.z).magnitude;
+
+
+        //Sonido pasos
+
+
+        if (HashInHashes("Standing_CQCStand_ParedIzq_ParedDer", snakeAnimator.GetCurrentAnimatorStateInfo(0).shortNameHash) && vMag > 0)
+        {
+            float t = snakeAnimator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+            t -= (int)t;
+
+            //print(t);
+
+            //Primer paso
+            if (t > 0.01f && t < 0.5f && !paso)
+            {
+                paso = true;
+                SonidoRadio(2.5f * vMag / sprVel);
+                this.GetComponent<AudioSource>().PlayOneShot(pasoClip, vMag * .05f / sprVel);
+
+            }
+            else if (t > 0.5f && paso)
+            {
+                paso = false;
+                SonidoRadio(2.5f * vMag / sprVel);
+                sonidoLocal.PlayOneShot(pasoClip, vMag * .05f / sprVel);
+            }
+
+        }
+        else
+        {
+            paso = false;
+        }
+
+        if (!pausa)
+        {
+
+            snakeAnimator.SetFloat("Velocidad", vMag);
+            snakeAnimator.SetFloat("FPS", FPS ? 1 : 0);
+            snakeAnimator.SetBool("Agachado", agach); snakeAnimator.SetBool("Arrastrado", arrast);
+            snakeAnimator.SetBool("Caja", caja);
+            snakeAnimator.SetBool("CQC", CQC);
+            colliderSnake.comprueba = tiempoCQC == 0;
+            if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("CQCThrow"))
+                snakeAnimator.SetBool("Throw", false);
+
+
+        }
+        if (tiempoCadencia > 0)
+        {
+            tiempoCadencia -= deltaTime;
+            if (tiempoCadencia < 0)
+            {
+                partRef.SetActive(false);
+                tiempoCadencia = 0;
+            }
+        }
+        if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("SinApuntar"))
+            snakeAnimator.SetBool("ArmaLista", GetButton("Apuntar") && armaEnMano != null && !caja && !binoc && !miraArmas && !miraObjetos);
+        else if (snakeAnimator.GetBool("ArmaLista") && (!GetButton("Apuntar") || armaEnMano == null || caja || binoc || miraArmas || miraObjetos))
+        {
+            snakeAnimator.SetBool("ArmaLista", false);
+        }
+
+        snakeAnimator.SetInteger("Balas", armaEnMano != null ? (balasFront[indArm].front) : 0);
+        if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar") || snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"))
+            snakeAnimator.SetBool("ArmaLista", true);
+
+
+        if (armaEnMano != null && armaEnMano.TipoObjeto() >= 1)
+        {
+
+            bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && balas[indArm] > 0;
+            bool condicionRecarga = (snakeAnimator.GetBool("Disparar") && snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"));
+
+            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas && tiempoRondas <= 0.1f) || condicionRecarga);
+
+            if (armaEnMano.TipoObjeto() == 2)
+                anguloArma = 10f;
+            else if (armaEnMano.TipoObjeto() == 1)
+                anguloArma = 0;
+
+        }
+
+        else if (armaEnMano != null && armaEnMano.TipoObjeto() == 0)
+        {
+
+            bool cuentaBalas = (armaEnMano.granada().remote == false) || (armaEnMano.granada().remote == true && GetButton("Apuntar"));
+            bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && (cuentaBalas && balas[indArm] > 0) == cuentaBalas;
+
+            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas));
+        }
+
+
+        snakeAnimator.SetFloat("ArmaTipo", (armaEnMano != null && !caja && !binoc && !miraArmas && !miraObjetos) ? (armaEnMano.TipoObjeto() >= 1 ? armaEnMano.TipoObjeto() - 1 : .5f) : -1);
+
+        if (tiempoCQC > 0 && snakeAnimator.GetFloat("ArmaTipo") == 0)
+            snakeAnimator.SetFloat("ArmaTipo", .75f);
+
+        //Animaciones c4 plantar y detonar
+
+
+        if (!GetButton("Disparar") && !puedeDisparar && (armaEnMano.TipoObjeto() >= 1 || (armaEnMano.TipoObjeto() == 0 && !puedeDisparar && !snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar"))))
+        {
+
+            puedeDisparar = true;
+        }
+
+
+
+
+        //Controla Rotacion y moverse arrast
+        if (dir != Vector3.zero)
+        {
+            if (!FPS || !snakeAnimator.GetBool("Pared"))
+                RotaRig();
+
+            //else if (snakeAnimator.GetBool("Pared"))
+            //RotaRig(false);
+
+            if (agach && !arrast && (pressAg == false || levantaTiron == true))
+            {
+                pressAg = true; estadoInicial = 1 + (levantaTiron ? 1 : 0);
+                movAg = true;
+            }
+
+        }
+
+
+        //Movimiento Y
+        if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("CQCThrow") || snakeAnimator.GetNextAnimatorStateInfo(1).IsName("CQCThrow"))
+            movement = Vector3.zero;
+        else
+            movement *= vel;
+
+        //movement.y = -9.8f;
+
+        if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Tirarse"))
+        {
+            //print(controller.velocity);
+            //Debug.Break();
+
+            movement = movTir;
+            movement.y -= deltaTime;
+            movTir = movement;
+            //if (controller.isGrounded)
+            if (isGrounded())
+            {
+                snakeAnimator.SetBool("Grounded", true);
+                movement = Vector3.zero;
+            }
+            if (movement.x != 0 || movement.z != 0)
+                RotaRig(false);
+            Debug.DrawRay(transform.position, movTir, Color.blue);
+        }
+
+
+
+
+        //Pegarse a paredes
+        {
+
+            RaycastHit paredR;
+            Vector3 noYMov = new Vector3(movement.x, 0, movement.z);
+            if (dir != Vector3.zero && Physics.Raycast(transform.position, noYMov, out paredR, .25f, sueloLayers))
+            {
+
+                RaycastHit lat1, lat2;
+                Vector3 pos1 = Vector3.zero, pos2 = Vector3.zero;
+
+                Vector3 dirLatR = Vector3.zero;
+                Vector3 normPared = paredR.normal; normPared.y = 0;
+
+                dirLatR = Vector3.Cross(Vector3.up, normPared);
+
+                //Comprobamos los laterales para ver si se va
+                if (Physics.Raycast(transform.position + (col.radius * transform.localScale.x * dirLatR), noYMov, out lat1, .25f, sueloLayers))
+                {
+                    pos1 = lat1.point;
+                    Debug.DrawRay(pos1, lat1.normal, Color.green);
+                }
+                else
+                    dir = Vector3.zero;
+                if (Physics.Raycast(transform.position - (col.radius * transform.localScale.x * dirLatR), noYMov, out lat2, .25f, sueloLayers))
+                {
+                    pos2 = lat2.point;
+                    Debug.DrawRay(pos2, lat2.normal, Color.green);
+                }
+
+                else
+                    dir = Vector3.zero;
+
+
+                if (tPared > 0)
+                {
+                    tPared -= deltaTime;
+                    if (tPared < 0)
+                        tPared = 0;
+                }
+
+                else
+                {
+
+                    snakeAnimator.SetBool("Pared", true);
+                    //Hacer que haga "espalda con espalda" con la pared
+
+                    if (pos1 == Vector3.zero) pos1 = paredR.point;
+                    if (pos2 == Vector3.zero) pos2 = paredR.point;
+
+
+                    Vector3 normalOpt = normPared - Vector3.Project(normPared, pos1 - paredR.point)
+                        - Vector3.Project(normPared, paredR.point - pos2);
+                    normalOpt.y = 0;
+                    Debug.DrawRay(transform.position, normalOpt);
+
+                    Rig.forward = -normalOpt;
+                    col.radius = 0.1f;
+
+                    //Hacer que los movimientos leves no se procesen
+                    float margen = arrVel / 2;
+                    Vector3 movOrt = movement - Vector3.Project(movement, normalOpt);
+                    movOrt.y = 0;
+                    //print(movOrt.magnitude);
+                    if (movOrt.magnitude < margen)
+                    {
+                        movement -= movOrt;
+                    }
+
+                    if(Vector3.SqrMagnitude(transform.position - paredR.point)<0.047f)
+                        movement -= Vector3.Project(movement, normalOpt) * .95f;
+
+                    Debug.DrawRay(transform.position, new Vector3(movement.x, 0, movement.z), Color.red);
+
+                }
+
+            }
+
+
+            else if (tPared != 0.5f)
+            {
+                if (tPared == 0)
+                {
+                    if (dir == Vector3.zero && !trueFPS)
+                    {
+                        Rig.Rotate(0, 180, 0);
+                    }
+
+                    //Rota solo si se ha pegado
+                    else if (trueFPS)
+                        FPSrot += Vector3.up * 180;
+                }
+                col.radius = 0.16f;
+                tPared = 0.5f;
+                snakeAnimator.SetBool("Pared", false);
+                //Si no choca porque se ha despegado, no rota
+            }
+
+            snakeAnimator.SetFloat("Hor", tPared == 0 ? (Vector3.Dot(movement, Rig.right)) : 0);
+        }
+
+
+
+        //Debug.DrawRay(transform.position, movement, Color.green);
+        //controller.Move(movement * Time.deltaTime);
+        Vector3 aceleracion = (movement - rb.velocity) / deltaTime;
+        aceleracion.y = 0;
+        rb.AddForce(aceleracion, ForceMode.Acceleration);
+        //rb.velocity = new Vector3(movement.x, rb.velocity.y, movement.z);
 
     }
 
@@ -1729,17 +1768,25 @@ public class Snake : MonoBehaviour
         
         //Altura personaje
         if (!agach)
-            controller.height = alturaW;
+            col.height = alturaW;
         else if (agach && !arrast)
-            controller.height = alturaC;
+            col.height = alturaC;
         else
-            controller.height = alturaArr;
+            col.height = alturaArr;
 
         if(caja)
-            controller.height = alturaC;
+            col.height = alturaC;
 
         //AjustaCentro
-        controller.center = Vector3.down * (alturaW - controller.height) / 2.0f;
+        float offset = .5f;
+        col.center = (Vector3.down * (alturaW - col.height) / 2.0f) + (Vector3.up * offset);
+        col.direction = 1;
+        if (arrast)
+        {
+            col.center = Vector3.zero;
+            col.direction = 2;
+        }
+
         
         
     }
@@ -2058,7 +2105,8 @@ public class Snake : MonoBehaviour
 
     bool PosibleCambioPos(float d)
     {
-         return !Physics.Raycast(cabeza.transform.position, Vector3.up,controller.stepOffset + d, sueloLayers);
+
+        return !Physics.Raycast(cabeza.transform.position, Vector3.up,.1f + d, sueloLayers);
     }
 
 
@@ -2244,7 +2292,7 @@ public class Snake : MonoBehaviour
 
     public bool enMovimiento()
     {
-        return controller.velocity.x != 0 || controller.velocity.z != 0 || 
+        return rb.velocity.x != 0 || rb.velocity.z != 0 || 
             (FPS && (GetAxis("Mouse X") != 0 || GetAxis("Cam X") != 0 || GetAxis("Mouse Y") != 0 || GetAxis("Cam Y") != 0));
     }
     public bool EstaVivo()
@@ -2409,5 +2457,18 @@ public class Snake : MonoBehaviour
             RecibeInformacion(nuevInfo[i]);
         }
     }
+    private void OnCollisionStay(Collision collision)
+    {
+
+        //Si el choque es total, se le dice al animator que pare
+        if (Vector3.Dot(movement.normalized, collision.impulse.normalized) < -.2f)
+        {
+            vMag = 0;
+        }
+        //Quita la parte de velocidad que choca
+        //movement -= Vector3.Project(movement, collision.impulse);
+        rb.velocity -= Vector3.Project(rb.velocity, collision.impulse);
+    }
+
 
 }

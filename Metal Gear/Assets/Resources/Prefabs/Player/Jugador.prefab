@@ -5844,9 +5844,14 @@ MonoBehaviour:
   abreInventario: {fileID: 8300000, guid: 5a2b7086c772a064a9df365c35a2f135, type: 3}
   mueveInventario: {fileID: 8300000, guid: e93dca503e7d33041b1921e579da6c8f, type: 3}
   colliderSnake: {fileID: 7012943776240856178}
+  tienePist: 0
   sonidoCollider: {fileID: 694294497}
   pasoClip: {fileID: 8300000, guid: 6346f22f57588984eb17488543021b41, type: 3}
   scream: {fileID: 8300000, guid: 5755232f24075ec41bcf36e777b62769, type: 3}
+  playerModel: {fileID: 7959547032974700518}
+  NakedSnakeMesh: {fileID: 5195099902463683144, guid: 1dbb7ce2ce397b64ba87ae7dd738d23b,
+    type: 3}
+  NakedSnakeMat: {fileID: 2100000, guid: 2924255bb12029b489541f337ea81fba, type: 2}
 --- !u!114 &7012943776671461481
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7882,6 +7887,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   apuntarCant: 0
+--- !u!137 &7959547032974700518 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -8131522976335241180, guid: 0fb7300ac5966794eb748f994e22d096,
+    type: 3}
+  m_PrefabInstance: {fileID: 7012943776597725122}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &9145238918916293679 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -6937635372818920467, guid: 0fb7300ac5966794eb748f994e22d096,

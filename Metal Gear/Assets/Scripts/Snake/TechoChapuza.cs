@@ -5,12 +5,12 @@ using UnityEngine;
 public class TechoChapuza : MonoBehaviour
 {
     List<GameObject> collidersTecho = new List<GameObject>();
-    [SerializeField] CharacterController controller;
+    //[SerializeField] CharacterController controller;
 
     // Update is called once per frame
     void Update()
     {
-        controller.stepOffset = collidersTecho.Count > 0 ? 0 : .1f;   
+        //controller.stepOffset = collidersTecho.Count > 0 ? 0 : .1f;   
     }
 
     private void OnTriggerEnter(Collider other)

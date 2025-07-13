@@ -570,7 +570,7 @@ public class RoomBuilder : MonoBehaviour
 
                 GameObject auxSnake = Instantiate(Resources.Load<GameObject>("Prefabs/Player/SnakeAux"));
                 GameObject snake = auxSnake.transform.GetChild(0).gameObject;
-                snake.GetComponent<CharacterController>().enabled = false;
+                //snake.GetComponent<CharacterController>().enabled = false;
 
                 GameObject camRadar = auxSnake.transform.GetChild(1).gameObject;
                 GameObject camContainer = auxSnake.transform.GetChild(2).gameObject;
@@ -584,7 +584,7 @@ public class RoomBuilder : MonoBehaviour
                 cubeAux.transform.position = spawnPoint;
                 
                 Destroy(auxSnake, 0);
-                snake.GetComponent<CharacterController>().enabled = true;
+                //snake.GetComponent<CharacterController>().enabled = true;
 
             }
             numSala = maxSalas + 1;
