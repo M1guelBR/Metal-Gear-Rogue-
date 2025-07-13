@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2728c64a683b79548959f0455bb6adf1, type: 3}
+  m_Name: STUN
+  m_EditorClassIdentifier: 
+  nombre: STUN
+  descripcion: A special type of grenade that emits a huge light that knocks out
+    nearby people
+  modeloArma: {fileID: -2231226876340116419, guid: 0e128211f97132140a5d8f2156a656e1,
+    type: 3}
+  materialArma: {fileID: 2100000, guid: 95872001a39afd543b994b74e8fcc6ee, type: 2}
+  sonidoDisparo: {fileID: 8300000, guid: 811db486535ac4146acc3c5da93296ac, type: 3}
+  UIArma: {fileID: 21300000, guid: edafa8821123df24188ca674dcc1b132, type: 3}
+  recargaClip: {fileID: 0}
+  tipo: 2
+  impulso: 1
+  remote: 0
+  esDef: 1
+  posPart: {x: 0, y: 0.018, z: 0.08}

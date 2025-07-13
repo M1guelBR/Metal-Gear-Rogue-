@@ -1,0 +1,45 @@
+{
+    "name": "QTELoad",
+    "maps": [
+        {
+            "name": "Default",
+            "id": "9785d3ee-3284-467b-a536-f29e84cb8f69",
+            "actions": [
+                {
+                    "name": "Interactuar",
+                    "type": "Button",
+                    "id": "67b0f996-7c1a-43d9-872f-2c3a678f815d",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "c21630ad-3376-4a27-919e-3b2958842a42",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interactuar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "08426c6a-850a-41f4-a70d-7bfef97cac43",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "Interactuar",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        }
+    ],
+    "controlSchemes": []
+}

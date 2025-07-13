@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 627c26e0df3ffe84bbf3ec5a8bf98727, type: 3}
+  m_Name: FAMAS
+  m_EditorClassIdentifier: 
+  nombre: FAMAS
+  descripcion: A fully automatic assault rifle with 1000 r.p.m rate, holding 25 bullets
+    per mag.
+  modeloArma: {fileID: -778208135731984825, guid: a11c0798a0eaf91479dff32faaac7569,
+    type: 3}
+  materialArma: {fileID: 2100000, guid: 4d9fc31db7f7dc242a36c9e3061d72bb, type: 2}
+  sonidoDisparo: {fileID: 8300000, guid: fcff9ac5d38afe14d9a13ee08a57f576, type: 3}
+  UIArma: {fileID: 21300000, guid: f503e1e48ef56ab4db772715b18db828, type: 3}
+  recargaClip: {fileID: 8300000, guid: 320184f8d7511e94f88865be566da5bd, type: 3}
+  tipoArma: 1
+  cadencia: 9.9
+  "da\xF1o": 7
+  tranq: 0
+  balas: 30
+  maxCargador: 180
+  rondas: 1
+  tiempoRondas: 0.2
+  automatica: 1
+  posPart: {x: 0, y: 0.018, z: 0.16}
+  esDef: 1

@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 627c26e0df3ffe84bbf3ec5a8bf98727, type: 3}
+  m_Name: COLT
+  m_EditorClassIdentifier: 
+  nombre: COLT SAA
+  descripcion: Engravings give no advantage whatsoever. 6 bullets of full power
+  modeloArma: {fileID: 1986970389511711091, guid: 49b375cc4806136439daa1a16c6b57c8,
+    type: 3}
+  materialArma: {fileID: 2100000, guid: 37cd5eaac2bf34047be91fbfa596aca1, type: 2}
+  sonidoDisparo: {fileID: 8300000, guid: a05fcef508c19ef46a4b51a499f23396, type: 3}
+  UIArma: {fileID: 21300000, guid: 2900923a23fae1349bb0d9ed1f33256a, type: 3}
+  tipoArma: 0
+  cadencia: 1
+  "da\xF1o": 15
+  tranq: 0
+  balas: 6
+  maxCargador: 12
+  rondas: 1
+  tiempoRondas: 0
+  automatica: 0
+  posPart: {x: 0, y: 0.018, z: 0.05}
+  esDef: 1

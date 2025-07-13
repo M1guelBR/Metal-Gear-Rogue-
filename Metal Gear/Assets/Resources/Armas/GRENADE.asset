@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2728c64a683b79548959f0455bb6adf1, type: 3}
+  m_Name: GRENADE
+  m_EditorClassIdentifier: 
+  nombre: GRENADE
+  descripcion: Throwable explosive that detonates in 5 seconds when launched
+  modeloArma: {fileID: -8031502829385147155, guid: 1218b4f27472e3645b082da2afa62087,
+    type: 3}
+  materialArma: {fileID: 2100000, guid: 474af81dfa13f7c42b5f409ffc71f8c2, type: 2}
+  sonidoDisparo: {fileID: 8300000, guid: 811db486535ac4146acc3c5da93296ac, type: 3}
+  UIArma: {fileID: 21300000, guid: 634bda34d77017a49aa6ec874df58cca, type: 3}
+  tipo: 0
+  impulso: 1
+  remote: 0
+  esDef: 1
+  posPart: {x: 0, y: 0.018, z: 0.08}
