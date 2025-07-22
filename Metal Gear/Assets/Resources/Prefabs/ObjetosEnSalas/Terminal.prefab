@@ -93,7 +93,7 @@ Transform:
   m_Children:
   - {fileID: 5285064718526072913}
   m_Father: {fileID: 0}
-  m_RootOrder: 22
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &5285064719384618093
 MeshFilter:
@@ -170,6 +170,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c821ae88620c0f34fbe3392fa9813e7f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  activado: 1
   tapadera: {fileID: 0}
   radar: {fileID: 0}
 --- !u!65 &5285064719384618129

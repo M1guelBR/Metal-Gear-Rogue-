@@ -34,9 +34,10 @@ public class GameManager : MonoBehaviour
     GameObject gameOver;
     List<Snake> jugadoresMuertos = new List<Snake>();
     int cantJugs = 1;
+    [SerializeField] bool cambiaInfo = true;
+    [SerializeField] bool autoServer = true;
 
 
-    // Start is called before the first frame update
     void Start()
     {
         //Crea la pantalla de Game Over
@@ -67,7 +68,6 @@ public class GameManager : MonoBehaviour
             soldadosEnPartida[i].ID = i;
         }
 
-        ActualizaEscala();
     }
 
     // Update is called once per frame
@@ -132,24 +132,28 @@ public class GameManager : MonoBehaviour
         tiempoMision += Time.unscaledDeltaTime;
     }
 
-    void ActualizaEscala()
+    public void ActualizaEscala()
     {
-        CanvasScaler interfaz = FindObjectOfType<CanvasScaler>();
-        Vector2 res = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
+        foreach(Snake jugador in jugadores)
+        {
+            CanvasScaler interfaz = jugador.interfaz.GetComponent<CanvasScaler>();
+            Vector2 res = new Vector2(Screen.currentResolution.width, Screen.currentResolution.height);
+            Vector2 escala = jugador.Cam.GetComponent<Camera>().rect.size;
+            r = res;
+            interfaz.matchWidthOrHeight = (res.x * escala.x )/ (res.y * escala.y);
 
-        r = res;
-        interfaz.matchWidthOrHeight = res.x / res.y;
+            if (interfaz.matchWidthOrHeight >= 1)
+                interfaz.matchWidthOrHeight = (res.y * escala.y) / (res.x * escala.x);
 
-        if (res.y < res.x)
-            interfaz.matchWidthOrHeight = res.y / res.x;
 
+        }
 
     }
 
 
     public void AddAlerta(Soldier sold, bool remove = false, bool busc = false, bool overlook = false)
     {
-        print("add");
+        //print("add");
         if (!overlook && !remove && sold.cosasVistas.Count > 0 && !sold.cosasVistas[0].Contains("verAJug"))
         {
             print("no add");
@@ -241,6 +245,8 @@ public class GameManager : MonoBehaviour
 
         ficheros.Remove(fichero.gameObject);
         //Actualizar información de la mision
+        if (!cambiaInfo)
+            return;
 
         if(ficheros.Count > 1)
         {
@@ -302,6 +308,8 @@ public class GameManager : MonoBehaviour
         
 
         columnas.Remove(columna.gameObject);
+        if (!cambiaInfo)
+            return;
 
         if (columnas.Count > 1)
         {
@@ -357,7 +365,7 @@ public class GameManager : MonoBehaviour
 
     public void MataSoldado(GameObject sold)
     {
-        if (sold == soldadoElim)
+        if (sold == soldadoElim && cambiaInfo)
         {
             soldadoElim = null;
 
@@ -521,19 +529,22 @@ public class GameManager : MonoBehaviour
                 gameOver.transform.GetChild(2).GetComponent<TMP_Text>().text = "MISSION COMPLETED!";
 
                 //Le manda la info de la mision, si es mision de eliminacion, el soldado a eliminar no lo tiene en cuenta
-                gameOver.GetComponent<GameOverScreen>().SetPoints(true, (int)tiempoMision, numAlertas, cantMuertes - (tipoMision == 0 ? 1 : 0), sinPistolas);
+                gameOver.GetComponent<GameOverScreen>().SetPoints(true && cambiaInfo, (int)tiempoMision, numAlertas, cantMuertes - (tipoMision == 0 ? 1 : 0), sinPistolas);
 
                 //Desbloquea el modo big boss
                 if(numAlertas == 0 && cantMuertes - (tipoMision == 0 ? 1 : 0) == 0 && PlayerPrefs.GetInt("NSnake", -1) == -1)
                 {
-                    PlayerPrefs.SetInt("NSnake", -1);
+                    PlayerPrefs.SetInt("NSnake", 0);
                 }
 
             }
             //Mision sin completar
             else
             {
-                gameOver.transform.GetChild(2).GetComponent<TMP_Text>().text = "MISSION FAILED";
+                string textoMision = "MISSION FAILED";
+                if (jugadoresMuertos.Count < cantJugs)
+                    textoMision = "YOU ESCAPED WITHOUT COMPLETING THE MISSION";
+                gameOver.transform.GetChild(2).GetComponent<TMP_Text>().text = textoMision;
                 gameOver.GetComponent<GameOverScreen>().SetPoints(false);
             }
 

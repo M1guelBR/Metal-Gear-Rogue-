@@ -38,7 +38,7 @@ public class VistaSoldado : MonoBehaviour
                 bool cajaCamuf = snakeJ.caja && !snakeJ.enMovimiento();
 
                 //Vector3 jugPos = jugador.GetComponent<CharacterController>().center + jugador.position;
-                Vector3 jugPos = jugador.GetComponent<CapsuleCollider>().center + jugador.position;
+                Vector3 jugPos = snakeJ.ActualPos();
                 Vector3 cabezaPos = snakeJ.cabeza.transform.position;
                 Vector3 piesPos = jugPos + (jugPos - cabezaPos);
                 Debug.DrawRay(transform.position, cabezaPos - transform.position, Color.white);
@@ -294,7 +294,8 @@ public class VistaSoldado : MonoBehaviour
             soldado.cosasVistas.Add(visto);
             soldado.cosasSteps.Add(-2);
             soldado.cosasTiempo.Add(3);
-            soldado.SonidoAlerta();
+            if(soldado.EstaVivo() && soldado.Consciente())
+                soldado.SonidoAlerta();
             //FindObjectOfType<GameManager>().AddAlerta(soldado);
 
         }
@@ -308,7 +309,9 @@ public class VistaSoldado : MonoBehaviour
                 FindObjectOfType<GameManager>().AddAlerta(soldado, true, true);
                 soldado.cosasSteps[indJug] = -2;
                 soldado.cosasTiempo[indJug] = 3;
-                soldado.SonidoAlerta();
+
+                if (soldado.EstaVivo() && soldado.Consciente())
+                    soldado.SonidoAlerta();
                 //EditorApplication.isPaused = true;
             }
 
@@ -334,7 +337,7 @@ public class VistaSoldado : MonoBehaviour
                 //Ahora esta en una caja y no está camuflado así que automáticamente lo busca en cajas
 
                 //Si no le buscaba, reproduce el sonido de alertarse
-                if(!valorCaja)
+                if(!valorCaja && soldado.cosasVistas[0].Contains("chkZone"))
                     soldado.SonidoAlerta();
 
                 valorCaja = true;

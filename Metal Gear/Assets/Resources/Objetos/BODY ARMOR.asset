@@ -24,4 +24,4 @@ MonoBehaviour:
   material: {fileID: 2100000, guid: e78a6616561a34c4a8e6b1deccd89549, type: 2}
   escala: {x: 0.030902008, y: 0.035261773, z: 0.035261773}
   localPos: {x: 0.00003, y: 0.00313, z: 0.00042}
-  localEuler: {x: -95, y: 0, z: 0}
+  localEuler: {x: -82, y: 0, z: 0}

@@ -46,7 +46,7 @@
                     "type": "Value",
                     "id": "9fff4537-098a-4798-a023-5e24485500f6",
                     "expectedControlType": "Axis",
-                    "processors": "Scale(factor=200)",
+                    "processors": "Scale(factor=100)",
                     "interactions": "",
                     "initialStateCheck": true
                 },
@@ -64,7 +64,7 @@
                     "type": "Value",
                     "id": "0bc5dd4c-9240-47e2-9be9-8c4fb2082dd6",
                     "expectedControlType": "Axis",
-                    "processors": "Scale(factor=200)",
+                    "processors": "Scale(factor=100)",
                     "interactions": "",
                     "initialStateCheck": true
                 },
@@ -180,6 +180,15 @@
                     "name": "Info",
                     "type": "Button",
                     "id": "5efa082d-5855-4528-b5d6-64a3c6d190b5",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "MouseToggle",
+                    "type": "Button",
+                    "id": "5dc0b900-aebf-4469-b589-484c068549c7",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -923,9 +932,69 @@
                     "action": "Info",
                     "isComposite": false,
                     "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "639ad914-4695-4d59-9f50-e8efc862f55e",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MouseToggle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }
     ],
-    "controlSchemes": []
+    "controlSchemes": [
+        {
+            "name": "Gamepad",
+            "bindingGroup": "Gamepad",
+            "devices": [
+                {
+                    "devicePath": "<Gamepad>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        },
+        {
+            "name": "KeyboardMouse",
+            "bindingGroup": "KeyboardMouse",
+            "devices": [
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        },
+        {
+            "name": "Both",
+            "bindingGroup": "Both",
+            "devices": [
+                {
+                    "devicePath": "<Gamepad>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Keyboard>",
+                    "isOptional": false,
+                    "isOR": false
+                },
+                {
+                    "devicePath": "<Mouse>",
+                    "isOptional": false,
+                    "isOR": false
+                }
+            ]
+        }
+    ]
 }

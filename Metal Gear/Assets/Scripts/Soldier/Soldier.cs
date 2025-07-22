@@ -113,6 +113,8 @@ public class Soldier : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+
+
         balas = new List<int>();
         balasFront = new List<int>();
         armasSoldado = new List<Arma>();
@@ -1059,13 +1061,12 @@ public class Soldier : MonoBehaviour
             sonido.gameObject.SetActive(false);
         }
 
-        if (agente.enabled)
-            lastPos = transform.position;
-
         movimiento = agente.enabled ? agente.velocity : (transform.position - lastPos) / Time.deltaTime;
 
+        if(jugadorAg == null)
+            soldierAnimator.SetFloat("Velocity", movimiento.magnitude);
 
-        soldierAnimator.SetFloat("Velocity", movimiento.magnitude);
+
         soldierAnimator.SetBool("Agachado", agachado);
         soldierAnimator.SetBool("Tirar", controller.enabled && impulsa);
         soldierAnimator.SetBool("Aterriza", controller.isGrounded);
@@ -1087,7 +1088,8 @@ public class Soldier : MonoBehaviour
             pillado = true;
         }
 
-        lastPos = transform.position;
+        if (!agente.enabled)
+            lastPos = transform.position;
 
         if (antesApagado && agente.enabled)
         {
@@ -1240,6 +1242,8 @@ public class Soldier : MonoBehaviour
 
         else if (sonido.gameObject.activeInHierarchy && !sonido.name.Contains("_") && sonido.jug == null)
             sonido.gameObject.name += "_";
+
+
 
 
     }
@@ -1571,11 +1575,12 @@ public class Soldier : MonoBehaviour
         armaEnMano = armasSoldado[ind];
         SetArma();
     }
-    public void DatosCQC(Vector3 normal, bool agach, Vector3 pos, bool posB = true)
+    public void DatosCQC(Vector3 normal, bool agach, Vector3 pos, bool posB = true, float vel = 0)
     {
         agachado = agach;
         cqcNormal = normal;
         cqcPos = pos;
+        soldierAnimator.SetFloat("Velocity", vel);
         pillado = true;
         if (controller.enabled)
         {
@@ -1800,7 +1805,7 @@ public class Soldier : MonoBehaviour
 
     public bool RecibeArma(Arma arma, int balas_ = 0)
     {
-        if (!EstaVivo() || !Consciente())
+        if (!EstaVivo() || !Consciente() || jugadorAg != null)
             return false;
         if (armasSoldado.Contains(arma))
         {
@@ -1925,12 +1930,21 @@ public class Soldier : MonoBehaviour
 
     void CheckRadar()
     {
-        if (modoRadar != 1 && cosasVistas.Count > 0 && !cosasVistas[0].Contains("verAJug"))
+        if((!EstaVivo() || !Consciente()) &&modoRadar != -1)
+        {
+            modoRadar = -1;
+            fovRadar.materials[0].EnableKeyword("_MODO_MUERTO");
+            fovRadar.materials[0].DisableKeyword("_MODO_CAUTION");
+            fovRadar.materials[0].DisableKeyword("_MODO_NORMAL");
+            fovRadar.materials[0].DisableKeyword("_MODO_ALERT");
+        }
+        else if (modoRadar != 1 && cosasVistas.Count > 0 && !cosasVistas[0].Contains("verAJug"))
         {
             modoRadar = 1;
             fovRadar.materials[0].EnableKeyword("_MODO_CAUTION");
             fovRadar.materials[0].DisableKeyword("_MODO_NORMAL");
             fovRadar.materials[0].DisableKeyword("_MODO_ALERT");
+            fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
         else if(modoRadar != 2 && cosasVistas.Count > 0 && cosasVistas[0].Contains("verAJug"))
         {
@@ -1938,13 +1952,15 @@ public class Soldier : MonoBehaviour
             fovRadar.materials[0].EnableKeyword("_MODO_ALERT");
             fovRadar.materials[0].DisableKeyword("_MODO_NORMAL");
             fovRadar.materials[0].DisableKeyword("_MODO_CAUTION");
+            fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
-        else if(modoRadar != 0 && cosasVistas.Count == 0)
+        else if(modoRadar != 0 && cosasVistas.Count == 0 && EstaVivo() && Consciente())
         {
             modoRadar = 0;
             fovRadar.materials[0].EnableKeyword("_MODO_NORMAL");
             fovRadar.materials[0].DisableKeyword("_MODO_ALERT");
             fovRadar.materials[0].DisableKeyword("_MODO_CAUTION");
+            fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
     }
     public bool Caution()
@@ -2236,5 +2252,6 @@ public class Soldier : MonoBehaviour
 
 
     }
+
 
 }

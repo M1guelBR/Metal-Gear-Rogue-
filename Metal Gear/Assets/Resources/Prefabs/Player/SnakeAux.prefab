@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1717161104991520531}
+  - component: {fileID: 1985563874246273629}
   m_Layer: 0
   m_Name: SnakeAux
   m_TagString: Untagged
@@ -35,6 +36,19 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1985563874246273629
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9120078010427709812}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd62f6503e902ab429c4d94516535ba0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  delete: 0
 --- !u!1001 &1582521141219245495
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -103,6 +117,16 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4647537082250274452, guid: c6d1d306ed40ed54082acf638bbcb435,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4647537082250274452, guid: c6d1d306ed40ed54082acf638bbcb435,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.width
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: c6d1d306ed40ed54082acf638bbcb435, type: 3}
@@ -126,6 +150,11 @@ PrefabInstance:
     serializedVersion: 2
     m_TransformParent: {fileID: 1717161104991520531}
     m_Modifications:
+    - target: {fileID: 7012943776671461482, guid: b275b7c2eaf3bbb489a0791e5e3ab675,
+        type: 3}
+      propertyPath: interfaz
+      value: 
+      objectReference: {fileID: 3737538558204441702}
     - target: {fileID: 7012943776671461482, guid: b275b7c2eaf3bbb489a0791e5e3ab675,
         type: 3}
       propertyPath: CamContainer
@@ -353,6 +382,18 @@ RectTransform:
     type: 3}
   m_PrefabInstance: {fileID: 7331504911137047839}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &3737538558204441702 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6224215870412091769, guid: 94ca4d3f624b7054da1edaa01ea66526,
+    type: 3}
+  m_PrefabInstance: {fileID: 7331504911137047839}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ce13e028b6c87914c82a5554c92b66aa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &7670597401506162274
 PrefabInstance:
   m_ObjectHideFlags: 0

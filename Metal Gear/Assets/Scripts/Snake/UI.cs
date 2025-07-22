@@ -40,7 +40,7 @@ public class UI : MonoBehaviour
 
 
     //---------RADAR
-    [SerializeField]GameObject camaraRadar;
+    public GameObject camaraRadar;
     [SerializeField] GameObject radarImg, jamImg, alertImg;
     [SerializeField] GameObject cautionImg;
     bool alerta = false;
@@ -131,6 +131,12 @@ public class UI : MonoBehaviour
         if (!alerta)
         {
             bool radActivo = snake.EsRadar();
+            if (radActivo && !radarImg.activeInHierarchy)
+            {
+
+                snake.SonidoClear();
+            }
+
             if (!radActivo && snake.GetTJamming() > 0)
             {
                 snake.SetTJamming(snake.GetTJamming() - Time.deltaTime);
@@ -205,6 +211,7 @@ public class UI : MonoBehaviour
 
     public void Alerta(bool al)
     {
+
         alerta = al;
     }
     public void TAlerta(float t)

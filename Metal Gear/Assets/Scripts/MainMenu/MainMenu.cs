@@ -16,7 +16,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] Button botonInicioDef;
 
     [SerializeField] GameObject extrasMenu;
-    [SerializeField] Toggle modoNSnake;
+    [SerializeField] GameObject nSnakeCheck;
 
     public Button buttonDef;
     public Toggle toggleDef;
@@ -39,7 +39,7 @@ public class MainMenu : MonoBehaviour
         SetDefaultButton(botonInicioDef.gameObject);
         blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, 1 - tiempo);
         extrasMenu.SetActive(PlayerPrefs.GetInt("NSnake", -1) > -1);
-        modoNSnake.isOn = PlayerPrefs.GetInt("NSnake", -1) > 0;
+        nSnakeCheck.SetActive(PlayerPrefs.GetInt("NSnake", -1) > 0);
     }
 
     // Update is called once per frame
@@ -131,9 +131,11 @@ public class MainMenu : MonoBehaviour
     {
         if (PlayerPrefs.GetInt("NSnake", -1) == -1)
             return;
+
         bool value = PlayerPrefs.GetInt("NSnake", -1) == 1;
         value = !value;
         PlayerPrefs.SetInt("NSnake", value ? 1 : 0);
+        nSnakeCheck.SetActive(value);
     }
 
 }

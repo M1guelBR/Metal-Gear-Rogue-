@@ -39,6 +39,10 @@ public class ArmoryCrate : MonoBehaviour
 
     void SeleccionaObjeto()
     {
+        if (obj != null)
+            return;
+
+
         int arma_obj = Random.Range(1, 101);
 
         List<Objeto> objetosPosibles = new List<Objeto>();

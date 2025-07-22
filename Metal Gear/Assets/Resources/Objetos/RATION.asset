@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: RATION
   m_EditorClassIdentifier: 
   nombre: RATION
-  descripcion: A pre-packaged meal that serves as healing in warfare situations
+  descripcion: A pre-packaged meal that serves as healing in warfare situations.
+    Use them with the USE button
   UIObj: {fileID: 21300000, guid: 5e2cb73733e550445a216a0629088fda, type: 3}
   parent: 0
   maxCant: 3

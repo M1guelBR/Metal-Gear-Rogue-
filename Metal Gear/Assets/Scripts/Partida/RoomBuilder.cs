@@ -48,12 +48,20 @@ public class RoomBuilder : MonoBehaviour
     List<int> vestSoldados = new List<int>();
 
     int mision, auxMisionData;
+    int numJugs;
     [SerializeField] Transform cubeAux;
 
     // Start is called before the first frame update
     void Start()
     {
-
+        try
+        {
+            numJugs = FindObjectOfType<MultiplayerHandler>().cantJugadores;
+        }
+        catch
+        {
+            numJugs = 1;
+        }
         //PruebaWhile.Write("", true);
 
         salasAUsar.AddRange(Resources.LoadAll<GameObject>("Prefabs/Salas"));
@@ -233,6 +241,8 @@ public class RoomBuilder : MonoBehaviour
 
 
                 //Si es mision de destrucción, que snake reciba el número de columnas de C4
+
+                //Hacer que funcione en multiplayer
                 FindObjectOfType<Snake>().RecibObjeto(Resources.Load<Objeto>("Armas/C4"));
                 FindObjectOfType<Snake>().RecibeBalas(Resources.Load<Objeto>("Armas/C4"), auxMisionData - 5);
 
@@ -285,6 +295,7 @@ public class RoomBuilder : MonoBehaviour
             GetComponent<GameManager>().IndicaMision(mision, auxMisionData);
 
             Destroy(this,0);
+            
         }
 
         else if(numSala == maxSalas)
@@ -565,28 +576,26 @@ public class RoomBuilder : MonoBehaviour
                 crate.Inicia();
             }
 
-            //Crear a Snake
+            //Crear a los Snakes
             {
+                GameObject auxSnake = Resources.Load<GameObject>("Prefabs/Player/SnakeAux");
+                GetComponent<PlayerInputManager>().playerPrefab = auxSnake;
+                for(int i = 0; i < numJugs; i++)
+                {
+                    GameObject jugAux = Instantiate(auxSnake, spawnPoint, Quaternion.identity);
 
-                GameObject auxSnake = Instantiate(Resources.Load<GameObject>("Prefabs/Player/SnakeAux"));
-                GameObject snake = auxSnake.transform.GetChild(0).gameObject;
-                //snake.GetComponent<CharacterController>().enabled = false;
+                    float radio = numJugs > 1 ? .2f : 0;
+                    float angulo = 2 * 3.14f * i / numJugs;
 
-                GameObject camRadar = auxSnake.transform.GetChild(1).gameObject;
-                GameObject camContainer = auxSnake.transform.GetChild(2).gameObject;
-                GameObject UI = auxSnake.transform.GetChild(3).gameObject;
-                snake.transform.parent = null;
-                camRadar.transform.parent = null;
-                camContainer.transform.parent = null;
-                UI.transform.SetParent(null);
-                
-                snake.transform.position = spawnPoint;
-                cubeAux.transform.position = spawnPoint;
-                
-                Destroy(auxSnake, 0);
+                    Vector3 offset = new Vector3(Mathf.Cos(angulo), Mathf.Sin(angulo), 0) * radio;
+                    jugAux.transform.position += offset;
+                    jugAux.GetComponent<AuxSnakeGen>().enabled = true;
+
+                }
                 //snake.GetComponent<CharacterController>().enabled = true;
 
             }
+            //this.GetComponent<GameManager>().ActualizaEscala();
             numSala = maxSalas + 1;
 
             //Debug.Break();

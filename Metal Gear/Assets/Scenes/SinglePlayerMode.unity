@@ -210,6 +210,7 @@ MonoBehaviour:
     type: 3}
   m_DeselectOnBackgroundClick: 1
   m_PointerBehavior: 0
+  m_CursorLockBehavior: 0
 --- !u!1 &236478399
 GameObject:
   m_ObjectHideFlags: 0
@@ -662,7 +663,8 @@ GameObject:
   - component: {fileID: 1107524660}
   - component: {fileID: 1107524661}
   - component: {fileID: 1107524662}
-  - component: {fileID: 1107524663}
+  - component: {fileID: 1107524664}
+  - component: {fileID: 1107524665}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -843,14 +845,59 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 9ae037d07ed91b0439e69102073205ec, type: 3}
   - {fileID: 8300000, guid: f3f902fff4f348240bf4d76c68f24e47, type: 3}
   alertTheme: {fileID: 8300000, guid: a9a2f1e5d4d29f2458e5065bf5d02622, type: 3}
---- !u!81 &1107524663
+--- !u!114 &1107524664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1107524657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 621567455fd1c4ceb811cc8a00b6a1a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_NotificationBehavior: 0
+  m_MaxPlayerCount: 4
+  m_AllowJoining: 1
+  m_JoinBehavior: 2
+  m_PlayerJoinedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_PlayerLeftEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_JoinAction:
+    m_UseReference: 0
+    m_Action:
+      m_Name: Join
+      m_Type: 0
+      m_ExpectedControlType: 
+      m_Id: 7ac6232a-ab4e-4ee1-85f2-88e491af1c7d
+      m_Processors: 
+      m_Interactions: 
+      m_SingletonActionBindings: []
+      m_Flags: 0
+    m_Reference: {fileID: 0}
+  m_PlayerPrefab: {fileID: 9120078010427709812, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+    type: 3}
+  m_SplitScreen: 0
+  m_MaintainAspectRatioInSplitScreen: 0
+  m_FixedNumberOfSplitScreens: -1
+  m_SplitScreenRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+--- !u!81 &1107524665
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1107524657}
-  m_Enabled: 0
+  m_Enabled: 1
 --- !u!1 &1780765133
 GameObject:
   m_ObjectHideFlags: 0

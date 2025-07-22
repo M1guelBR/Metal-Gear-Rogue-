@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEditor;
 
 public class Explosivo : MonoBehaviour
 {
@@ -312,6 +313,7 @@ public class Explosivo : MonoBehaviour
                 }
 
             }
+
             return;
         }
 
@@ -321,7 +323,13 @@ public class Explosivo : MonoBehaviour
         if (remoto && tiempoExplosion > 0 && transform.parent == null)
         {
             ColliderDisparo colDisp = other.GetComponent<ColliderDisparo>();
-            if (other.gameObject.layer == LayerMask.NameToLayer("Explosivo")||(colDisp != null && colDisp.objetoPadre == tirador ))
+
+            bool condA = other.gameObject.layer == LayerMask.NameToLayer("Explosivo");
+            bool condB = (colDisp != null && colDisp.objetoPadre == tirador);
+            bool condC = (other.gameObject.layer == LayerMask.NameToLayer("SnakeCollider") && other.transform.parent == tirador);
+            bool condD = other.gameObject.layer == LayerMask.NameToLayer("InteraccionSnake");
+
+            if (condA || condB || condC || condD)
                 return;
             transform.parent = other.transform;
             this.GetComponent<Rigidbody>().isKinematic = true;
@@ -334,7 +342,9 @@ public class Explosivo : MonoBehaviour
         if (tiempoExplosion == 0 && terminaExplotar)
             tiempoExplosion = -1;
         else if (tiempoExplosion == 0 && !terminaExplotar)
+        {
             terminaExplotar = true;
+        }
     }
 
 }

@@ -427,7 +427,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   posiciones:
-  - {x: 0.67, y: 0, z: -0.12}
+  - {x: 1.01, y: 0, z: -0.03}
   angulos:
   - 0
   tiempos:

@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Terminal : MonoBehaviour
 {
-    bool activado = false;
+    public bool activado = false;
     [SerializeField] GameObject tapadera, radar;
     // Start is called before the first frame update
     void Start()
@@ -29,7 +29,8 @@ public class Terminal : MonoBehaviour
         {
             tapadera.SetActive(false);
             if (activado)
-                other.transform.parent.parent.GetComponent<Snake>().SetRadar(radar, tapadera.transform.position.y + .05f);
+                return;
+                //other.transform.parent.parent.GetComponent<Snake>().SetRadar(radar, tapadera.transform.position.y + .05f);
         }
         
     }
@@ -38,7 +39,7 @@ public class Terminal : MonoBehaviour
         if (other.tag.Contains("JugCol"))
         {
             tapadera.SetActive(true);
-            other.transform.parent.parent.GetComponent<Snake>().SetRadar(null);
+            //other.transform.parent.parent.GetComponent<Snake>().SetRadar(null);
         }
     }
 

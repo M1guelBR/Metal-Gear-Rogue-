@@ -19,6 +19,7 @@ MonoBehaviour:
   materialArma: {fileID: 2100000, guid: 37cd5eaac2bf34047be91fbfa596aca1, type: 2}
   sonidoDisparo: {fileID: 8300000, guid: a05fcef508c19ef46a4b51a499f23396, type: 3}
   UIArma: {fileID: 21300000, guid: 2900923a23fae1349bb0d9ed1f33256a, type: 3}
+  recargaClip: {fileID: 8300000, guid: 85aced55dca1977468d597e3255127e0, type: 3}
   tipoArma: 0
   cadencia: 1
   "da\xF1o": 15
