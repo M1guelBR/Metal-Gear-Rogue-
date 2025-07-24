@@ -29,8 +29,7 @@ public class Terminal : MonoBehaviour
         {
             tapadera.SetActive(false);
             if (activado)
-                return;
-                //other.transform.parent.parent.GetComponent<Snake>().SetRadar(radar, tapadera.transform.position.y + .05f);
+                other.transform.parent.parent.GetComponent<Snake>().SetRadar(radar, tapadera.transform.position.y + .05f);
         }
         
     }
@@ -39,7 +38,7 @@ public class Terminal : MonoBehaviour
         if (other.tag.Contains("JugCol"))
         {
             tapadera.SetActive(true);
-            //other.transform.parent.parent.GetComponent<Snake>().SetRadar(null);
+            other.transform.parent.parent.GetComponent<Snake>().SetRadar(null);
         }
     }
 

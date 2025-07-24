@@ -4655,105 +4655,17 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1985563874246273629, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
         type: 3}
-      propertyPath: delete
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 1985563874246273629, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
       propertyPath: m_Enabled
       value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4640768025764517119, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6163564001370348320, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7331504909688281719, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_text
-      value: COMPLETE THE TUTORIAL
-      objectReference: {fileID: 0}
-    - target: {fileID: 7331504909688281721, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7331504911190304893, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8681877372661416599, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: playerInput
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 8940014828356350117, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -17.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 8940014828356350117, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0.94
-      objectReference: {fileID: 0}
-    - target: {fileID: 8940014828356350117, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -20.09
       objectReference: {fileID: 0}
     - target: {fileID: 9120078010427709812, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
         type: 3}
       propertyPath: m_Name
       value: SnakeAux
       objectReference: {fileID: 0}
-    m_RemovedComponents:
-    - {fileID: 4934985360407780996, guid: dc51034ed1ce52f46a5b7d5cd9df6997, type: 3}
+    m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: dc51034ed1ce52f46a5b7d5cd9df6997, type: 3}
---- !u!1 &2091006068 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8681877372661416594, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
-    type: 3}
-  m_PrefabInstance: {fileID: 2091006067}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &2091006069
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2091006068}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Actions: {fileID: -944628639613478452, guid: d932d3b81edf612469422284ceb1df6a,
-    type: 3}
-  m_NotificationBehavior: 0
-  m_UIInputModule: {fileID: 0}
-  m_DeviceLostEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_DeviceRegainedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ControlsChangedEvent:
-    m_PersistentCalls:
-      m_Calls: []
-  m_ActionEvents: []
-  m_NeverAutoSwitchControlSchemes: 0
-  m_DefaultControlScheme: 
-  m_DefaultActionMap: Controles
-  m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
 --- !u!1001 &2103266835
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -621,7 +621,7 @@ public class Snake : MonoBehaviour
                 }
                 if (Physics.Raycast(posR, -Rig.forward, out hitArrP, long_, sueloLayers))
                 {
-                    if (choqueFrontal)
+                    if (choqueFrontal && PosibleCambioPos(alturaC))
                         arrast = false;
 
                 }
@@ -1093,7 +1093,7 @@ public class Snake : MonoBehaviour
         //Controla Rotacion y moverse arrast
         if (dir != Vector3.zero)
         {
-            if (!FPS || !snakeAnimator.GetBool("Pared"))
+            if (!FPS && !snakeAnimator.GetBool("Pared"))
                 RotaRig();
 
             //else if (snakeAnimator.GetBool("Pared"))
@@ -1137,16 +1137,16 @@ public class Snake : MonoBehaviour
         //Pegarse a paredes
         {
 
-            RaycastHit paredR;
+            RaycastHit paredR = new RaycastHit();
             Vector3 noYMov = new Vector3(movement.x, 0, movement.z);
             if (dir != Vector3.zero && Physics.Raycast(transform.position, noYMov, out paredR, .25f, sueloLayers))
             {
 
                 RaycastHit lat1, lat2;
-                Vector3 pos1 = Vector3.zero, pos2 = Vector3.zero;
 
+                Vector3 pos1 = Vector3.zero, pos2 = Vector3.zero, normPared = Vector3.zero;
                 Vector3 dirLatR = Vector3.zero;
-                Vector3 normPared = paredR.normal; normPared.y = 0;
+                normPared = paredR.normal; normPared.y = 0;
 
                 dirLatR = Vector3.Cross(Vector3.up, normPared);
 
@@ -1175,7 +1175,7 @@ public class Snake : MonoBehaviour
                         tPared = 0;
                 }
 
-                else
+                if (tPared == 0)
                 {
                     col.material.dynamicFriction = 0;
                     col.material.staticFriction = 0;
@@ -1208,11 +1208,9 @@ public class Snake : MonoBehaviour
                     //Debug.DrawRay(transform.position, new Vector3(movement.x, 0, movement.z), Color.red);
 
                 }
-
             }
 
-
-            else if (tPared != 0.5f)
+            else if (tPared != 0.5f && !(tPared == 0 && Physics.Raycast(pecho.position, -Rig.forward, .35f, sueloLayers)))
             {
                 if (tPared == 0)
                 {
@@ -1232,6 +1230,7 @@ public class Snake : MonoBehaviour
                 snakeAnimator.SetBool("Pared", false);
                 //Si no choca porque se ha despegado, no rota
             }
+            Debug.DrawRay(pecho.position, -Rig.forward * .35f);
 
             snakeAnimator.SetFloat("Hor", tPared == 0 ? (Vector3.Dot(movement, Rig.right)) : 0);
         }
@@ -1434,7 +1433,7 @@ public class Snake : MonoBehaviour
         SetObjeto();
         if (objEnMano != null)
         {
-            if (objEnMano.nombre != "EMPTY" && !(objEnMano.nombre == "C. BOX" && arrast && !PosibleCambioPos(alturaC - alturaArr)) && !(objEnMano.nombre == "C. BOX" && CQC))
+            if (objEnMano.nombre != "EMPTY" && !(objEnMano.nombre == "C. BOX" && arrast && !PosibleCambioPos(alturaC - 0)) && !(objEnMano.nombre == "C. BOX" && CQC))
                 antIndObj = indObj;
             if (objEnMano.nombre != "C. BOX")
             {
@@ -1476,7 +1475,7 @@ public class Snake : MonoBehaviour
                     dañoMult = .5f;
                     break;
                 case "C. BOX":
-                    if ((arrast && !PosibleCambioPos(alturaC - alturaArr)) || CQC)
+                    if ((arrast && !PosibleCambioPos(alturaC - 0)) || CQC)
                     {
                         indObj = antIndObj;
                         //realObjInd = -1;
@@ -1712,6 +1711,7 @@ public class Snake : MonoBehaviour
 
         if(!snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("CQCThrow") && !snakeAnimator.GetNextAnimatorStateInfo(1).IsName("CQCThrow"))
             Rig.eulerAngles = new Vector3(0, angle, 0);
+
     }
 
     void Recargar(Pistola_Fusil arma)
@@ -1735,7 +1735,7 @@ public class Snake : MonoBehaviour
             {
                 agach = !agach;
             }
-            else if(arrast && PosibleCambioPos(alturaC - alturaArr))
+            else if(arrast && PosibleCambioPos(alturaC - 0))
             {
                 arrast = false;
                 if (GetAxis("Horizontal") != 0 || GetAxis("Vertical") != 0)
@@ -1767,8 +1767,12 @@ public class Snake : MonoBehaviour
     void AjustaController(bool cambiaPos = false)
     {
 
-        
+
         //Altura personaje
+        bool prevArr = false;
+        if (arrast)
+            prevArr = col.direction == 2;
+
         if (!agach)
             col.height = alturaW;
         else if (agach && !arrast)
@@ -1789,7 +1793,7 @@ public class Snake : MonoBehaviour
         if (arrast)
         {
             print("ajusta");
-            if(cambiaPos)
+            if(cambiaPos && !prevArr)
                 transform.position += 0.1f * Vector3.up;
 
 
@@ -2121,7 +2125,7 @@ public class Snake : MonoBehaviour
     bool PosibleCambioPos(float d)
     {
 
-        return !Physics.Raycast(cabeza.transform.position, Vector3.up,.1f + d, sueloLayers);
+        return !Physics.Raycast(cabeza.transform.position, Vector3.up,.5f + d, sueloLayers);
     }
 
 
