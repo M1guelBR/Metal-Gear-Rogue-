@@ -44,4 +44,8 @@ public class Arma : Objeto
     {
         return 0;
     }
+    public virtual float remoto()
+    {
+        return 0;
+    }
 }

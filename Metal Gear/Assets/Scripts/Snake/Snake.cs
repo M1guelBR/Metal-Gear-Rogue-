@@ -173,7 +173,7 @@ public class Snake : MonoBehaviour
     [SerializeField] Mesh NakedSnakeMesh;
     [SerializeField] Material NakedSnakeMat;
 
-    bool mouse;
+    bool mouse; bool morir = false;
 
 
     private void Awake()
@@ -265,18 +265,19 @@ public class Snake : MonoBehaviour
             Cursor.visible = mouse;
         }
 
-
-        if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Morir"))
+        if (morir)
         {
-            return;
+            if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Morir"))
+            {
+                return;
+            }
+            else if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Muerto"))
+            {
+                //Quitar jug de GameManager y borrar el script de snake
+                FindObjectOfType<GameManager>().MataJugador(this, true);
+                Destroy(this, 0);
+            }
         }
-        else if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Muerto"))
-        {
-            //Quitar jug de GameManager y borrar el script de snake
-            FindObjectOfType<GameManager>().MataJugador(this, true);
-            Destroy(this, 0);
-        }
-
         //Time.timeScale = timeSc;
         if (tCam != tCamTarg)
             tCam = Mathf.MoveTowards(tCam, tCamTarg, 3 *Time.deltaTime);
@@ -354,8 +355,14 @@ public class Snake : MonoBehaviour
 
             bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && balas[indArm] > 0;
             bool condicionRecarga = (snakeAnimator.GetBool("Disparar") && snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"));
+            bool condicionCQC = !CQC || (CQC && GetButton("Apuntar"));
 
-            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas && tiempoRondas <= 0.1f) || condicionRecarga);
+            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas && tiempoRondas <= 0.1f && condicionCQC) || condicionRecarga );
+            if (!condicionCQC && GetButton("Disparar"))
+            {
+                tiempoCadencia = Mathf.Max(1 / armaEnMano.Cadencia(), 1/5.75f); 
+                snakeAnimator.SetBool("Disparar", false);
+            }
 
             if (armaEnMano.TipoObjeto() == 2)
                 anguloArma = 10f;
@@ -364,17 +371,26 @@ public class Snake : MonoBehaviour
 
         }
 
-        else if (armaEnMano != null && armaEnMano.TipoObjeto() == 0)
+        else if (armaEnMano != null && armaEnMano.TipoObjeto() == 0 && tiempoCadencia == 0)
         {
 
             bool cuentaBalas = (armaEnMano.granada().remote == false) || (armaEnMano.granada().remote == true && GetButton("Apuntar"));
             bool condicionBalas = tiempoCadencia <= .1f && puedeDisparar && (cuentaBalas && balas[indArm] > 0) == cuentaBalas;
+            bool condicionCQC = !CQC || (CQC && GetButton("Apuntar"));
 
-            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas));
+            snakeAnimator.SetBool("Disparar", (GetButton("Disparar") && condicionBalas && condicionCQC)); 
+            if (!condicionCQC && GetButton("Disparar"))
+            {
+                tiempoCadencia = 1/5.75f;
+                snakeAnimator.SetBool("Disparar", false);
+            }
         }
 
 
         snakeAnimator.SetFloat("ArmaTipo", (armaEnMano != null && !caja && !binoc && !miraArmas && !miraObjetos) ? (armaEnMano.TipoObjeto() >= 1 ? armaEnMano.TipoObjeto() - 1 : .5f) : -1);
+        if(armaEnMano != null)
+            snakeAnimator.SetFloat("ArmaTipo", snakeAnimator.GetFloat("ArmaTipo") + armaEnMano.remoto());
+
 
         if (tiempoCQC > 0 && snakeAnimator.GetFloat("ArmaTipo") == 0)
             snakeAnimator.SetFloat("ArmaTipo", .75f);
@@ -539,7 +555,6 @@ public class Snake : MonoBehaviour
     }
     private void LateUpdate()
     {
-
         //Camara
         {
             if (GetButtonDown("PrimeraPersona") && !binoc)
@@ -583,6 +598,7 @@ public class Snake : MonoBehaviour
                     (punchCount != 0 && colliderSnake.masProximo != null && colliderSnake.masProximo.name != "InteraccionSoldadoInc");
                 tempF = Mathf.MoveTowards(tempF, boolFOV ? 60 : TPSFov, 100 * Time.deltaTime);
                 Cam.GetComponent<Camera>().fieldOfView = tempF;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = tempF;
 
             }
             else if (!trueFPS && !binoc)
@@ -602,6 +618,11 @@ public class Snake : MonoBehaviour
                 Cam.position = cabeza.transform.position + (0.1f * cabeza.transform.up);
             }
         }
+
+        if (morir)
+            return;
+
+
         interfaz.CamaraRadar();
         if (caja)
             return;
@@ -632,7 +653,8 @@ public class Snake : MonoBehaviour
         //Armas de fuego y tomar rehenes
         {
             if (armaEnMano != null&& !binoc && !miraArmas && !miraObjetos)
-            {  
+            {
+
 
                 if (GetButton("Apuntar") || snakeAnimator.GetBool("Disparar") || snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar")
                     || snakeAnimator.GetBool("Recargar") || snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Recargar"))
@@ -934,6 +956,8 @@ public class Snake : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (morir)
+            return;
         Movimiento(Time.fixedDeltaTime);
 
         //Layer Collider
@@ -995,6 +1019,7 @@ public class Snake : MonoBehaviour
             {
                 Cam.GetComponent<Camera>().fieldOfView += ((GetButton("Disparar") ? 1 : 0) - (GetButton("Apuntar") ? 1 : 0)) * Time.deltaTime * (interfaz.maxZoom - interfaz.fov);
                 Cam.GetComponent<Camera>().fieldOfView = Mathf.Clamp(Cam.GetComponent<Camera>().fieldOfView, interfaz.maxZoom, interfaz.fov);
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = Cam.GetComponent<Camera>().fieldOfView;
             }
         }
 
@@ -1452,11 +1477,13 @@ public class Snake : MonoBehaviour
                 binoc = false;
 
                 Cam.GetComponent<Camera>().fieldOfView = TPSFov;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = TPSFov;
             }
             else if (objEnMano.nombre != "SCOPE" && FPS && binoc)
             {
                 binoc = false;
                 Cam.GetComponent<Camera>().fieldOfView = FPSFov;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = FPSFov;
             }
 
             switch (objEnMano.nombre)
@@ -1511,10 +1538,12 @@ public class Snake : MonoBehaviour
                 CamATercera();
                 trueFPS = false;
                 Cam.GetComponent<Camera>().fieldOfView = TPSFov;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = TPSFov;
             }
             else if (FPS && binoc)
             {
                 Cam.GetComponent<Camera>().fieldOfView = FPSFov;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = FPSFov;
             }
             binoc = false;
             caja = false;
@@ -1528,9 +1557,11 @@ public class Snake : MonoBehaviour
 
     public void DisparaArmaFuego(Pistola_Fusil arma)
     {
+
         if ((snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar"))
             && tiempoCadencia == 0 && puedeDisparar && balas[indArm] > 0 && balasFront[indArm].front > 0)
         {
+
             tiempoCadencia = 1 / arma.cadencia;
             partRef.SetActive(true);
             armaHolder.GetComponent<AudioSource>().PlayOneShot(armaEnMano.sonidoDisparo, 1);
@@ -1915,8 +1946,11 @@ public class Snake : MonoBehaviour
             if (objEnMano.nombre != "SCOPE")
             {
                 interfaz.UIbinoc.SetActive(false);
-                if(!CQC)
+                if (!CQC)
+                {
                     Cam.GetComponent<Camera>().fieldOfView = FPS ? FPSFov : TPSFov;
+                    Cam.GetChild(0).GetComponent<Camera>().fieldOfView = FPS ? FPSFov : TPSFov;
+                }
             }
 
 
@@ -1934,8 +1968,11 @@ public class Snake : MonoBehaviour
             humoCig.SetActive(false);
             dañoMult = 1;
             caja = false;
-            if(!CQC)
+            if (!CQC)
+            {
                 Cam.GetComponent<Camera>().fieldOfView = FPS ? FPSFov : TPSFov;
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = FPS ? FPSFov : TPSFov;
+            }
             AjustaController();
         }
     }
@@ -2124,8 +2161,8 @@ public class Snake : MonoBehaviour
 
     bool PosibleCambioPos(float d)
     {
-
-        return !Physics.Raycast(cabeza.transform.position, Vector3.up,.5f + d, sueloLayers);
+        float add = arrast ? .05f : 0;
+        return !Physics.Raycast(cabeza.transform.position, Vector3.up,add + d, sueloLayers);
     }
 
 
@@ -2137,6 +2174,7 @@ public class Snake : MonoBehaviour
         CamContainer.rotation = Quaternion.Euler(rot);
         Cam.position = cabeza.transform.position - (cabeza.transform.forward * (1 - animAy.apuntarCant)) + (0.1f * cabeza.transform.up);
         Cam.GetComponent<Camera>().fieldOfView = FPSFov;
+        Cam.GetChild(0).GetComponent<Camera>().fieldOfView = FPSFov;
     }
 
     void CamATercera()
@@ -2146,6 +2184,7 @@ public class Snake : MonoBehaviour
         Cam.localRotation = Quaternion.Euler(0, 0, 0);
         trueFPS = false;
         Cam.GetComponent<Camera>().fieldOfView = TPSFov;
+        Cam.GetChild(0).GetComponent<Camera>().fieldOfView = TPSFov;
         AjustaCamaraTercera();
         AjustaCamDist();
     }
@@ -2215,6 +2254,7 @@ public class Snake : MonoBehaviour
 
     void Disparar()
     {
+        //Debug.Break();
         Vector3 add = tiempoCQC > 0 ? Rig.right * 0.2f : Vector3.zero;
         Vector3? posDisparo = armaEnMano.Disparar(cabeza.transform.position + add, cabeza.transform.forward, cabeza.transform.up, transform, true);
         if(posDisparo != null)
@@ -2285,6 +2325,7 @@ public class Snake : MonoBehaviour
             }
             else
             {
+                morir = true;
                 this.GetComponent<AudioSource>().PlayOneShot(scream);
                 if (colliderSnake.soldadoCQC != null)
                     Libera();
@@ -2400,7 +2441,10 @@ public class Snake : MonoBehaviour
             TPSFov = cant;
 
         if (FPS_ == FPS)
+        {
             Cam.GetComponent<Camera>().fieldOfView = cant;
+            Cam.GetChild(0).GetComponent<Camera>().fieldOfView = cant;
+        }
 
     }
 
@@ -2513,7 +2557,7 @@ public class Snake : MonoBehaviour
 
     public Vector3 ActualPos()
     {
-        return CamContainer.position;
+        return pecho.position;
     }
 
     public void AjustaCamMarco(int cantActual, int cantTotal)

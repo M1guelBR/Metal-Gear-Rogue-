@@ -120,4 +120,9 @@ public class Granada : Arma
         jugador.SetFrontID(indexRemote, idADetonar, true);
 
     }
+
+    public override float remoto()
+    {
+        return remote ? .05f : 0;
+    }
 }

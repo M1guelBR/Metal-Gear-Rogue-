@@ -42,12 +42,12 @@ public class ArmoryCrate : MonoBehaviour
         if (obj != null)
             return;
 
-
+        //20 % de armas, 80% de objetos
         int arma_obj = Random.Range(1, 101);
 
         List<Objeto> objetosPosibles = new List<Objeto>();
         //Si es un arma
-        if(arma_obj < 50)
+        if(arma_obj < 20)
         {
 
             //Cargamos todas las armas posibles
@@ -96,19 +96,19 @@ public class ArmoryCrate : MonoBehaviour
             }
             else if (objetosPosibles[i].nombre == "RATION")
             {
-                pesos[i] = (int)(total * 0.25f);
+                pesos[i] = (int)(total * 0.6f);
                 probAsig += pesos[i];
                 cantAsig += 1;
             }
             else if (objetosPosibles[i].nombre == "N.V.G.")
             {
-                pesos[i] = (int)(total * 0.25f);
+                pesos[i] = (int)(total * 0.1f);
                 probAsig += pesos[i];
                 cantAsig += 1;
             }
             else if (objetosPosibles[i].nombre == "C. BOX")
             {
-                pesos[i] = (int)(total * 0.25f);
+                pesos[i] = (int)(total * 0.1f);
                 probAsig += pesos[i];
                 cantAsig += 1;
             }

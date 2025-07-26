@@ -40,7 +40,7 @@ public class VistaSoldado : MonoBehaviour
                 //Vector3 jugPos = jugador.GetComponent<CharacterController>().center + jugador.position;
                 Vector3 jugPos = snakeJ.ActualPos();
                 Vector3 cabezaPos = snakeJ.cabeza.transform.position;
-                Vector3 piesPos = jugPos + (jugPos - cabezaPos);
+                Vector3 piesPos = jugPos + 2 * (jugPos - cabezaPos);
                 Debug.DrawRay(transform.position, cabezaPos - transform.position, Color.white);
                 Debug.DrawRay(transform.position, jugPos - transform.position, Color.white);
                 Debug.DrawRay(transform.position, piesPos - transform.position, Color.white);

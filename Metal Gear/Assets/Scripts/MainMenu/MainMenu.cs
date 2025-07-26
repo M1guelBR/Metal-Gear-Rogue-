@@ -47,17 +47,18 @@ public class MainMenu : MonoBehaviour
     {
         if(tiempo < 1)
         {
-            tiempo += Time.deltaTime * velocidadFadeIn;
+            //Si no está cargando una escena, es decir, solo es para la introduccion que sume
+            if(!loading)
+                tiempo += Time.deltaTime * velocidadFadeIn;
+
+            //Cuando está cargando una escena, hacemos que tiempo sea el porcentaje de carga
+            //Cargamos la escena de manera asíncrona
+
+
             if (tiempo > 1)
                 tiempo = 1;
             blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, loading ? tiempo : (1 - tiempo));
-
-
             titleTheme.volume = loading ? 1 - tiempo : tiempo;
-            if(tiempo == 1 && loading)
-            {
-                SceneManager.LoadScene(escenaLoad);
-            }
         }
 
 
@@ -120,7 +121,9 @@ public class MainMenu : MonoBehaviour
     {
         loading = true;
         tiempo = 0;
-        escenaLoad = escena;
+        //Código de Brackeys jeje
+        AsyncOperation cargaEscena = SceneManager.LoadSceneAsync(escena);
+        StartCoroutine(CargaAsinc(escena, cargaEscena));
     }
     public void Cerrar()
     {
@@ -136,6 +139,21 @@ public class MainMenu : MonoBehaviour
         value = !value;
         PlayerPrefs.SetInt("NSnake", value ? 1 : 0);
         nSnakeCheck.SetActive(value);
+    }
+
+    IEnumerator CargaAsinc(string escena, AsyncOperation operation)
+    {
+
+        while (!operation.isDone)
+        {
+            tiempo += Time.deltaTime;
+            blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, loading ? tiempo : (1 - tiempo));
+            titleTheme.volume = loading ? 1 - tiempo : tiempo;
+            
+
+            yield return null;
+        }
+
     }
 
 }
