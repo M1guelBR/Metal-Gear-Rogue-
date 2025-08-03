@@ -36,6 +36,8 @@ public class VistaSoldado : MonoBehaviour
                 Snake snakeJ = jugador.GetComponent<Snake>();
                 bool caja = snakeJ.caja;
                 bool cajaCamuf = snakeJ.caja && !snakeJ.enMovimiento();
+                bool hold = snakeJ.Holding();
+                Vector3 lookDir = snakeJ.Rig.forward;
 
                 //Vector3 jugPos = jugador.GetComponent<CharacterController>().center + jugador.position;
                 Vector3 jugPos = snakeJ.ActualPos();
@@ -53,7 +55,7 @@ public class VistaSoldado : MonoBehaviour
                     //Alerta
                     if (EsColDeSnake(hitPlayer.collider, collidersALaVista[i].gameObject))
                     {
-                        Alerta(jugPos, caja, cajaCamuf, snakeJ.playerID);
+                        Alerta(jugPos, hold, lookDir, caja, cajaCamuf, snakeJ.playerID);
                         detectado = true;
                     }
                 }
@@ -62,7 +64,7 @@ public class VistaSoldado : MonoBehaviour
                     //Alerta
                     if (EsColDeSnake(hitPlayer.collider, collidersALaVista[i].gameObject))
                     {
-                        Alerta(jugPos, caja, cajaCamuf, snakeJ.playerID);
+                        Alerta(jugPos, hold, lookDir, caja, cajaCamuf, snakeJ.playerID);
                         detectado = true;
                     }
                 }
@@ -71,7 +73,7 @@ public class VistaSoldado : MonoBehaviour
                     //Alerta
                     if (EsColDeSnake(hitPlayer.collider, collidersALaVista[i].gameObject))
                     {
-                        Alerta(jugPos, caja, cajaCamuf, snakeJ.playerID);
+                        Alerta(jugPos, hold, lookDir, caja, cajaCamuf, snakeJ.playerID);
                     }
                 }
 
@@ -252,7 +254,7 @@ public class VistaSoldado : MonoBehaviour
 
         }
     }
-    public void Alerta(Vector3 snakePos, bool caja = false, bool cajaCamuf = false, int indexPlayer = 0)
+    public void Alerta(Vector3 snakePos, bool hold = false, Vector3 normalHold = new Vector3(),bool caja = false, bool cajaCamuf = false, int indexPlayer = 0)
     {
 
         bool yaDetectado = false;
@@ -289,8 +291,8 @@ public class VistaSoldado : MonoBehaviour
             {
                 return;
             }
-
-            string visto = "verAJug_" + VectorAString(snakePos) + "_" + (caja ? "t" : "f") + "_" + indexPlayer.ToString();
+            string moduloRehen = "_" + (hold ? "t" : "f") + (hold ? ("_" + VectorAString(normalHold)) : "");
+            string visto = "verAJug_" + VectorAString(snakePos) + "_" + (caja ? "t" : "f") + moduloRehen + "_" + indexPlayer.ToString();
             soldado.cosasVistas.Add(visto);
             soldado.cosasSteps.Add(-2);
             soldado.cosasTiempo.Add(3);
@@ -344,8 +346,9 @@ public class VistaSoldado : MonoBehaviour
             }
 
 
+            string moduloRehen = "_" + (hold ? "t" : "f") + (hold ? ("_" + VectorAString(normalHold)) : "");
 
-            string visto = "verAJug_" + VectorAString(snakePos) + "_" + (valorCaja ? "t" : "f") + "_" + indexPlayer.ToString();
+            string visto = "verAJug_" + VectorAString(snakePos) + "_" + (valorCaja ? "t" : "f") + moduloRehen + "_" + indexPlayer.ToString();
 
 
             soldado.cosasVistas[indJug] = visto;

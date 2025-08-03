@@ -4,6 +4,6 @@ using UnityEngine;
 
 public class SonidoSoldado : MonoBehaviour
 {
-    public Transform jug;
+    public Snake jug;
     public float time;
 }

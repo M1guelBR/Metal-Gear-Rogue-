@@ -23,7 +23,9 @@ public class RecibeSonidos : MonoBehaviour
         {
             //Acomodar a las cajas
 
-            vista.Alerta(other.GetComponent<SonidoSoldado>().jug.position, false, false, other.GetComponent<SonidoSoldado>().jug.GetComponent<Snake>().playerID);
+            vista.Alerta(other.GetComponent<SonidoSoldado>().jug.transform.position, 
+                other.GetComponent<SonidoSoldado>().jug.Holding(), other.GetComponent<SonidoSoldado>().jug.Rig.forward,
+                false, false, other.GetComponent<SonidoSoldado>().jug.playerID);
         }
 
     }

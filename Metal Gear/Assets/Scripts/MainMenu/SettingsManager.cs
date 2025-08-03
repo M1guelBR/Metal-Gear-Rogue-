@@ -6,6 +6,7 @@ using System;
 
 public class SettingsManager : MonoBehaviour
 {
+    public float sensitivity;
     public bool invertYT;
     public bool invertXT;
     public bool invertYF;
@@ -23,7 +24,15 @@ public class SettingsManager : MonoBehaviour
 
 
 
-
+    public void Sensitivity(float value)
+    {
+        value = Mathf.Clamp(value, .25f, 1);
+        PlayerPrefs.SetFloat("Sensitivity", value);
+        if (FindObjectOfType<Snake>())
+        {
+            FindObjectOfType<Snake>().SetSensitivity(value);
+        }
+    }
     public void YThird(bool input)
     {
         invertYT = input;
@@ -108,6 +117,7 @@ public class SettingsManager : MonoBehaviour
 
     public void SaveAll()
     {
+        Sensitivity(sensitivity);
         YThird(invertYT);
         XThird(invertXT);
         YFirst(invertYF);
@@ -123,7 +133,7 @@ public class SettingsManager : MonoBehaviour
     public void LoadAll()
     {
 
-
+        sensitivity = PlayerPrefs.GetFloat("Sensitivity", .5f);
         invertYT = PlayerPrefs.GetInt("invertYT", 1) == 1;
         invertXT = PlayerPrefs.GetInt("invertXT", 0) == 1;
         invertYF = PlayerPrefs.GetInt("invertYF", 0) == 1;
@@ -157,6 +167,7 @@ public class SettingsManager : MonoBehaviour
 
     public void ResetSettings()
     {
+        sensitivity = 0.75f;
         invertYT = true;
         invertXT = false;
         invertYF = false;

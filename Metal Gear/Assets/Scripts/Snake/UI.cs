@@ -131,7 +131,7 @@ public class UI : MonoBehaviour
         if (!alerta)
         {
             bool radActivo = snake.EsRadar();
-            if (radActivo && !radarImg.activeInHierarchy)
+            if (radActivo && !radarImg.activeSelf)
             {
 
                 snake.SonidoClear();

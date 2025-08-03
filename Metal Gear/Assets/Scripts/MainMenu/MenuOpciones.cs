@@ -11,6 +11,8 @@ public class MenuOpciones : MonoBehaviour
     public Toggle invertXT;
     public Toggle invertYF;
     public Toggle invertXF;
+
+    public Slider sensitSlider;
     public int resInd;
     public Toggle fullscreen;
     public Slider musicVol;
@@ -44,6 +46,10 @@ public class MenuOpciones : MonoBehaviour
         LoadSettings();
     }
 
+    public void Sensitivity()
+    {
+        setMan.Sensitivity(sensitSlider.value);
+    }
     public void YThird()
     {
         setMan.YThird(invertYT.isOn);
@@ -97,7 +103,7 @@ public class MenuOpciones : MonoBehaviour
 
         setMan.LoadAll();
 
-
+        sensitSlider.value = setMan.sensitivity;
         invertYT.isOn = setMan.invertYT;
         invertYF.isOn = setMan.invertYF;
         invertXT.isOn = setMan.invertXT;

@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/Scenes/MainMenu.unity
     guid: 2d270c0eaa8e5e448a6fc3e9fa8133d6
   - enabled: 1
+    path: Assets/Scenes/CargaMedio.unity
+    guid: c8115a314bc536848a15da8a3924dea6
+  - enabled: 1
     path: Assets/Scenes/SinglePlayerMode.unity
     guid: 05ae95aec5d88e046863df6c1da31d10
   - enabled: 1

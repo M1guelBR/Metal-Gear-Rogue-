@@ -110,7 +110,7 @@ public class Explosivo : MonoBehaviour
                         sold.ThrowDirection(direc * mag * 2.15f, tirador_);
 
 
-                        sold.QuitaVida(Mathf.Max((sold.Vida() - 0.01f) * mag * 3.5f,0));
+                        sold.QuitaVida(Mathf.Max((sold.Vida() - 0.01f) * mag * 3.5f,0), tirador);
                         //print("vida fuera");
 
                         break;

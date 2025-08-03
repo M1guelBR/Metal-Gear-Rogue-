@@ -30,8 +30,6 @@ public class MainMenu : MonoBehaviour
     Button volverButton;
     public EventSystem eventSystem;
     bool loading = false;
-    string escenaLoad = "";
-
     // Start is called before the first frame update
     void Start()
     {
@@ -47,16 +45,18 @@ public class MainMenu : MonoBehaviour
     {
         if(tiempo < 1)
         {
-            //Si no está cargando una escena, es decir, solo es para la introduccion que sume
-            if(!loading)
-                tiempo += Time.deltaTime * velocidadFadeIn;
+            tiempo += Time.deltaTime * velocidadFadeIn;
 
             //Cuando está cargando una escena, hacemos que tiempo sea el porcentaje de carga
             //Cargamos la escena de manera asíncrona
 
 
             if (tiempo > 1)
+            {
                 tiempo = 1;
+                if (loading)
+                    SceneManager.LoadScene("CargaMedio");
+            }
             blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, loading ? tiempo : (1 - tiempo));
             titleTheme.volume = loading ? 1 - tiempo : tiempo;
         }
@@ -121,9 +121,7 @@ public class MainMenu : MonoBehaviour
     {
         loading = true;
         tiempo = 0;
-        //Código de Brackeys jeje
-        AsyncOperation cargaEscena = SceneManager.LoadSceneAsync(escena);
-        StartCoroutine(CargaAsinc(escena, cargaEscena));
+        FindObjectOfType<CargaMedioScript>().escena = escena;
     }
     public void Cerrar()
     {
@@ -141,19 +139,5 @@ public class MainMenu : MonoBehaviour
         nSnakeCheck.SetActive(value);
     }
 
-    IEnumerator CargaAsinc(string escena, AsyncOperation operation)
-    {
-
-        while (!operation.isDone)
-        {
-            tiempo += Time.deltaTime;
-            blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, loading ? tiempo : (1 - tiempo));
-            titleTheme.volume = loading ? 1 - tiempo : tiempo;
-            
-
-            yield return null;
-        }
-
-    }
 
 }

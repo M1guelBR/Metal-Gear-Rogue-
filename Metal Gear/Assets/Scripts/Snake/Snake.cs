@@ -616,6 +616,12 @@ public class Snake : MonoBehaviour
             else if (trueFPS || binoc)
             {
                 Cam.position = cabeza.transform.position + (0.1f * cabeza.transform.up);
+
+                //NVG fix
+                if (objEnMano != null && objEnMano.nombre == "N.V.G.")
+                    objetoHolder.SetActive(false);
+                else if (objEnMano != null && !objetoHolder.activeInHierarchy)
+                    objetoHolder.SetActive(true);
             }
         }
 
@@ -790,7 +796,7 @@ public class Snake : MonoBehaviour
             {
                 if (snakeAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime < 0.15f && pega && condicionNombre)
                 {
-                    colliderSnake.soldadoCQC.QuitaVida(.5f, !snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Kick"));
+                    colliderSnake.soldadoCQC.QuitaVida(.5f, transform, !snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Kick"));
                     colliderSnake.soldadoCQC.BuscaJug(this);
                     int i = Random.Range(1, 4);
                     this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .35f);
@@ -898,7 +904,7 @@ public class Snake : MonoBehaviour
             }
             else if (CQC && GetButtonDown("Disparar") && !GetButton("Apuntar") && tiempoCQC <= 1)
             {
-                colliderSnake.soldadoCQC.QuitaVida(100);
+                colliderSnake.soldadoCQC.QuitaVida(100, transform);
             }
 
 
@@ -1758,15 +1764,17 @@ public class Snake : MonoBehaviour
 
     void CambiaPostura()
     {
+        float curAlt = agach ? (arrast ? 0 : alturaC) : alturaW;
         if (snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Tirarse") ||
             snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("Aterrizar")){return;}
         if (tiempoPressAg > 0)
         {
-            if (!arrast && (!agach || (agach && PosibleCambioPos(alturaW - alturaC))))
+            if (!arrast && (!agach || (agach && PosibleCambioPos(alturaW - curAlt))))
             {
+                print("cambio");
                 agach = !agach;
             }
-            else if(arrast && PosibleCambioPos(alturaC - 0))
+            else if(arrast && PosibleCambioPos(alturaC - curAlt))
             {
                 arrast = false;
                 if (GetAxis("Horizontal") != 0 || GetAxis("Vertical") != 0)
@@ -1779,8 +1787,10 @@ public class Snake : MonoBehaviour
         }
         else
         {
-            if(agach && PosibleCambioPos(alturaW - alturaC) && ((estadoInicial == 2 && !CQC) || (estadoInicial < 2 && CQC)))
+            if(agach && PosibleCambioPos(alturaW - curAlt) && 
+                ((estadoInicial == 2 && !CQC) || (estadoInicial < 2 && CQC)))
             {
+                print("cambio 2");
                 agach = false;
                 if (levantaTiron)
                     levantaTiron = false;
@@ -2162,7 +2172,10 @@ public class Snake : MonoBehaviour
     bool PosibleCambioPos(float d)
     {
         float add = arrast ? .05f : 0;
-        return !Physics.Raycast(cabeza.transform.position, Vector3.up,add + d, sueloLayers);
+
+        Debug.DrawRay(pecho.transform.position, Vector3.up * (add + d), Color.red);
+
+        return !Physics.Raycast(pecho.transform.position, Vector3.up,add + d, sueloLayers);
     }
 
 
@@ -2187,6 +2200,8 @@ public class Snake : MonoBehaviour
         Cam.GetChild(0).GetComponent<Camera>().fieldOfView = TPSFov;
         AjustaCamaraTercera();
         AjustaCamDist();
+        if(objEnMano != null)
+            objetoHolder.SetActive(true);
     }
 
     void AjustaCamDist()
@@ -2306,17 +2321,27 @@ public class Snake : MonoBehaviour
         AjustaController();
     }
 
-    public void QuitaVida(float cantidad)
+    public void QuitaVida(float cantidad, bool muestraFisica = true)
     {
         print("vida");
         cantidad = Mathf.Clamp(cantidad, 0, 100);
 
         vida -= cantidad * dañoMult;
+        vida = Mathf.Max(0, vida);
 
-        snakeAnimator.Play("DolorLayer.Dolor", 2, 0);
+        if (muestraFisica)
+        {
+            snakeAnimator.Play("DolorLayer.Dolor", 2, 0);
+            Material cuerpoMat = Rig.GetChild(1).GetComponent<SkinnedMeshRenderer>().materials[0];
+
+            float fac = 1 - (vida * 0.01f);
+            if (fac > cuerpoMat.GetFloat("_SangreFac"))
+                cuerpoMat.SetFloat("_SangreFac", fac);
+
+        }
 
         CheckVida();
-        if(vida <= 0)
+        if(vida == 0)
         {
             if (objEnMano != null && objEnMano.nombre == "RATION")
             {
@@ -2532,6 +2557,13 @@ public class Snake : MonoBehaviour
     }
     private void OnCollisionStay(Collision collision)
     {
+        //Si es un soldado, que se esté quietecito
+        if (collision.gameObject.name == "ColisionSoldado")
+        {
+            collision.transform.parent.parent.GetComponent<Soldier>().SetPPKT(.1f);
+        }
+
+
         Vector3 direccion = collision.GetContact(0).normal;
         //Debug.DrawRay(transform.position, direccion, new Color(.5f, 0, .1f));
         //Si el choque es total, se le dice al animator que pare
@@ -2587,5 +2619,14 @@ public class Snake : MonoBehaviour
         cam_.rect = r;
     }
 
+    public bool Holding()
+    {
+        return CQC;
+    }
+
+    public void SetSensitivity(float value)
+    {
+        sensitivity = value;
+    }
 
 }

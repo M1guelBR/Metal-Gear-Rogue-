@@ -112,12 +112,12 @@ public class Pistola_Fusil : Arma
                 {
                     if (colDisp.dañoDisp != 100)
                     {
-                        colDisp.objetoPadre.GetComponent<Soldier>().QuitaVida(colDisp.dañoDisp * daño / 15);
+                        colDisp.objetoPadre.GetComponent<Soldier>().QuitaVida(colDisp.dañoDisp * daño / 15, disparador);
                         colDisp.objetoPadre.GetComponent<Soldier>().BajaOxigeno(-100);
                     }
 
                     else
-                        colDisp.objetoPadre.GetComponent<Soldier>().QuitaVida(100);
+                        colDisp.objetoPadre.GetComponent<Soldier>().QuitaVida(100, disparador);
 
                     if (!colDisp.objetoPadre.GetComponent<Soldier>().EstaVivo())
                     {

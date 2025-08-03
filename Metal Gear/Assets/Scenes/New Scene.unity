@@ -1095,7 +1095,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f32e6a776361a5740947fa995bc60809, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objeto: {fileID: 11400000, guid: 8d593a8ad13f00b40b24c816fb1ecf03, type: 2}
+  objeto: {fileID: 11400000, guid: 8e1db56550cba0a48a1c656260bc5056, type: 2}
   soloBalas: 0
   balas: 0
   activo: 1
@@ -1157,7 +1157,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 693143793}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.93, y: 1.3918934, z: 1.01}
+  m_LocalPosition: {x: 4.28, y: 1.3918934, z: 1.01}
   m_LocalScale: {x: 0.71014047, y: 0.71014047, z: 0.71014047}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1394,7 +1394,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f32e6a776361a5740947fa995bc60809, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  objeto: {fileID: 11400000, guid: df6f50a9d40714c4b86e70ce0ee4e547, type: 2}
+  objeto: {fileID: 11400000, guid: bd23056bd662c5d48b58a153b6b0706f, type: 2}
   soloBalas: 0
   balas: 0
   activo: 1
@@ -1591,7 +1591,7 @@ GameObject:
   - component: {fileID: 1013590790}
   - component: {fileID: 1013590789}
   m_Layer: 0
-  m_Name: Cylinder
+  m_Name: SkyboxPrueba
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2710,6 +2710,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0d68a58e6f17cbc48b0d5ec7f5a81776, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sensitivity: 0
   invertYT: 0
   invertXT: 0
   invertYF: 0
@@ -2970,6 +2971,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Soldier (2)
+      objectReference: {fileID: 0}
+    - target: {fileID: 8370982902876585345, guid: e258633b1c5277f4da7924ca545025cc,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8370982902876585346, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
@@ -3652,10 +3658,6 @@ PrefabInstance:
     serializedVersion: 2
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 60062710, guid: 94ca4d3f624b7054da1edaa01ea66526, type: 3}
-      propertyPath: m_AnchoredPosition.y
-      value: -47.51834
-      objectReference: {fileID: 0}
     - target: {fileID: 6224215870412091762, guid: 94ca4d3f624b7054da1edaa01ea66526,
         type: 3}
       propertyPath: m_Name
@@ -3877,6 +3879,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: Jugador
       objectReference: {fileID: 0}
+    - target: {fileID: 7959547032974700518, guid: b275b7c2eaf3bbb489a0791e5e3ab675,
+        type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 5195099902463683144, guid: 1dbb7ce2ce397b64ba87ae7dd738d23b,
+        type: 3}
+    - target: {fileID: 7959547032974700518, guid: b275b7c2eaf3bbb489a0791e5e3ab675,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: 2924255bb12029b489541f337ea81fba, type: 2}
     m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: b275b7c2eaf3bbb489a0791e5e3ab675, type: 3}
@@ -3956,7 +3969,7 @@ PrefabInstance:
     - target: {fileID: 8370982902876585346, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
       propertyPath: para
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8370982902876585346, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}

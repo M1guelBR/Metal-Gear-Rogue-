@@ -363,7 +363,7 @@ public class GameManager : MonoBehaviour
 
     }
 
-    public void MataSoldado(GameObject sold)
+    public void MataSoldado(GameObject sold, Transform culpable)
     {
         if (sold == soldadoElim && cambiaInfo)
         {
@@ -376,9 +376,9 @@ public class GameManager : MonoBehaviour
 
             }
 
-
         }
-        cantMuertes += 1;
+        if(culpable.GetComponent<Snake>())
+            cantMuertes += 1;
 
     }
 
