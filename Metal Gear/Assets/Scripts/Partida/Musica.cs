@@ -37,8 +37,9 @@ public class Musica : MonoBehaviour
         AudioSource source = GetComponent<AudioSource>();
         source.Stop();
         source.clip = alertTheme;
-        source.loop = false;
+        source.loop = true;
         source.Play();
+        //print("alerta");
 
     }
     public void ResetMusicaCola()
@@ -54,12 +55,16 @@ public class Musica : MonoBehaviour
         //Reproduce el tema
         AudioSource source = GetComponent<AudioSource>();
         source.Stop();
-        source.clip = musica[i];
-        source.loop = false;
-        source.Play();
+        //Por si hay un test sin musica
+        if (musica.Count > 0)
+        {
+            source.clip = musica[i];
+            source.loop = false;
+            source.Play();
 
-        usados.Add(musica[i]);
-        musica.RemoveAt(i);
+            usados.Add(musica[i]);
+            musica.RemoveAt(i);
+        }
 
     }
 

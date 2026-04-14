@@ -26,6 +26,8 @@ public class MenuOpciones : MonoBehaviour
     [SerializeField]bool autoIniciar = true;
     bool pantallaSistemaParche = false;
 
+    int id = 0;
+
     void Update()
     {
         if (!pantallaSistemaParche)
@@ -37,34 +39,28 @@ public class MenuOpciones : MonoBehaviour
     private void Start()
     {
         if (autoIniciar)
-            Iniciar();
-    }
-
-    public void Iniciar()
-    {
-
-        LoadSettings();
+            LoadSettings();
     }
 
     public void Sensitivity()
     {
-        setMan.Sensitivity(sensitSlider.value);
+        setMan.Sensitivity(sensitSlider.value, id);
     }
     public void YThird()
     {
-        setMan.YThird(invertYT.isOn);
+        setMan.YThird(invertYT.isOn, id);
     }
     public void XThird()
     {
-        setMan.XThird(invertXT.isOn);
+        setMan.XThird(invertXT.isOn, id);
     }
     public void YFirst()
     {
-        setMan.YFirst(invertYF.isOn);
+        setMan.YFirst(invertYF.isOn, id);
     }
     public void XFirst()
     {
-        setMan.XFirst(invertXF.isOn);
+        setMan.XFirst(invertXF.isOn, id);
     }
     public void Resolution()
     {
@@ -85,41 +81,49 @@ public class MenuOpciones : MonoBehaviour
     }
     public void ThirdFov()
     {
-        setMan.ThirdFov((int)TFov.value);
+        setMan.ThirdFov((int)TFov.value, id);
         TFText.text = ((int)TFov.value).ToString();
     }
     public void FirstFov()
     {
-        setMan.FirstFov((int)FFov.value);
+        setMan.FirstFov((int)FFov.value, id);
         FFText.text = ((int)FFov.value).ToString();
     }
 
     public void LoadSettings()
     {
         //;
-
         if (setMan == null)
             setMan = FindObjectOfType<SettingsManager>();
 
-        setMan.LoadAll();
+        setMan.LoadAll(id);
 
-        sensitSlider.value = setMan.sensitivity;
-        invertYT.isOn = setMan.invertYT;
-        invertYF.isOn = setMan.invertYF;
-        invertXT.isOn = setMan.invertXT;
-        invertXF.isOn = setMan.invertXF;
+        sensitSlider.value = setMan.sensitivity[id];
+        invertYT.isOn = setMan.invertYT[id];
+        invertYF.isOn = setMan.invertYF[id];
+        invertXT.isOn = setMan.invertXT[id];
+        invertXF.isOn = setMan.invertXF[id];
 
-        resInd = setMan.resInd;
-        CambiaResInd(0);
+        if (id == 0)
+        {
+            musicVol.value = setMan.musicVol;
+            effVol.value = setMan.effVol;
+            resInd = setMan.resInd;
+            CambiaResInd(0);
 
-        fullscreen.isOn = setMan.fullscreen;
+            fullscreen.isOn = setMan.fullscreen;
+        }
+        else 
+        {
+            fullscreen.transform.parent.gameObject.SetActive(false);
+            resText.transform.parent.gameObject.SetActive(false);
+            musicVol.transform.parent.gameObject.SetActive(false);
+            effVol.transform.parent.gameObject.SetActive(false); 
+        }
 
-        musicVol.value = setMan.musicVol;
-        effVol.value = setMan.effVol;
-
-        TFov.value = setMan.TFov;
+        TFov.value = setMan.TFov[id];
         TFText.text = ((int)TFov.value).ToString();
-        FFov.value = setMan.FFov;
+        FFov.value = setMan.FFov[id];
         FFText.text = ((int)FFov.value).ToString();
 
 
@@ -144,5 +148,14 @@ public class MenuOpciones : MonoBehaviour
 
         resText.color = new Color(1, resInd == setMan.resInd ? 1 : 0, resInd == setMan.resInd ? 1 : 0);
 
+    }
+
+    public void SetId(int id_, bool load = false)
+    {
+        id = id_;
+        if (load)
+        {
+            LoadSettings();
+        }
     }
 }

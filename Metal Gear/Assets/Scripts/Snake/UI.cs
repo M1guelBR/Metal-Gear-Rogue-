@@ -49,10 +49,14 @@ public class UI : MonoBehaviour
 
     //----------MENU DE PAUSA
     public GameObject pausaMenu;
+    public GameObject pausaFondo;
+    public MenuOpciones opsMenu;
 
     //--------------MENU DE INFORMACION
     public GameObject infMenu;
-    public TMP_Text informTexto;
+    public TMP_Text[] informTextos;
+    public TMP_Text plantaTexto;
+    public Camera miniMapaCam;
 
 
     // Start is called before the first frame update
@@ -65,17 +69,6 @@ public class UI : MonoBehaviour
         //FindObjectOfType<MenuOpciones>().gameObject.SetActive(false);
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-
-        //Escala la pantalla con la resolución
-        float coefAspecto = Screen.currentResolution.width / Screen.currentResolution.height; coefAspecto = Mathf.Clamp01(coefAspecto);
-        this.GetComponent<CanvasScaler>().matchWidthOrHeight = coefAspecto;
-        
-
-
-    }
 
     public void SetUI()
     {
@@ -159,9 +152,7 @@ public class UI : MonoBehaviour
         }
 
     }
-    private void LateUpdate()
-    {
-    }
+
     public void CamaraRadar()
     {
 
@@ -247,16 +238,36 @@ public class UI : MonoBehaviour
         infMenu.SetActive(activado);
     }
 
-    public void Informacion(string input, int modo = 0) // 0 = añade, 1 = reemplaza
+    public void Informacion(string input, int linea,bool reemp) // 0 = añade, 1 = reemplaza
     {
-        if (modo == 0)
-            informTexto.text += input;
-        else if (modo == 1)
-            informTexto.text = input;
+        linea = Mathf.Clamp(linea, 0, informTextos.Length - 1);
+        if (!reemp)
+            informTextos[linea].text += input;
+        else
+            informTextos[linea].text = input;
     }
     public void RadarDesact()
     {
         radarImg.transform.parent.gameObject.SetActive(false);
+    }
+    
+    public void TachaTexto(int linea)
+    {
+        linea = Mathf.Clamp(linea, 0, informTextos.Length - 1);
+        informTextos[linea].fontStyle = FontStyles.Strikethrough;
+        print(informTextos[linea].text);
+    }
+
+    public void BotonPlanta(int sentido)
+    {
+        int planta = FindObjectOfType<GameManager>().ActualizaCamaraMinimapa(miniMapaCam,sentido) + 1;
+        plantaTexto.text = "FLOOR : " +planta.ToString();
+    }
+
+    public void SetRadarRendTex(RenderTexture renderTex, Material mat)
+    {
+        camaraRadar.GetComponent<Camera>().targetTexture = renderTex;
+        radarImg.GetComponent<Image>().material = mat;
     }
 
 }

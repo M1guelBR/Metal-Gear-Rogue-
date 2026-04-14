@@ -32,7 +32,7 @@ public class Puerta : MonoBehaviour
         {
             colliders.Add(other.gameObject);
             if (colliders.Count == 1)
-                sonidoPuerta.Play();
+                FindObjectOfType<GameManager>().SonidoFisico(sonidoPuerta, sonidoPuerta.clip, 1, 0, 1, true);//sonidoPuerta.Play();
 
         }
     }
@@ -42,7 +42,7 @@ public class Puerta : MonoBehaviour
         {
             colliders.Remove(other.gameObject);
             if (colliders.Count == 0)
-                sonidoPuerta.Play();
+                FindObjectOfType<GameManager>().SonidoFisico(sonidoPuerta, sonidoPuerta.clip, 1, 0, 1, true);//sonidoPuerta.Play();
         }
     }
     

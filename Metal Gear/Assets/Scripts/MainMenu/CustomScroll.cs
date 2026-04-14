@@ -13,10 +13,15 @@ public class CustomScroll : MonoBehaviour
     [SerializeField] float scrollBottom = 200;
     [SerializeField] EventSystem eventSystem;
     [SerializeField] Slider barra;
-
+    [SerializeField] GameObject topScreen, bottomScreen;
+    float length = 1, topDist = 1;
     private void Start()
     {
         eventSystem = FindObjectOfType<EventSystem>();
+        //Obtenemos longitud de pantalla
+        topDist = Vector3.Dot(topScreen.transform.position - transform.position, transform.up);
+        float bottomDist = Vector3.Dot(bottomScreen.transform.position - transform.position, transform.up);
+        length = topDist - bottomDist;
     }
 
     // Update is called once per frame
@@ -25,18 +30,17 @@ public class CustomScroll : MonoBehaviour
         float scrollChange = Mouse.current.scroll.ReadValue().y / 120; //Dividimos por 120 que es la unidad
         //print(scrollChange);
 
+
+        print(length);
+
         scrollAm += scrollChange * .1f;
         //Si tiene un objeto seleccionado y es de la zona scrolleable, intentamos centrar la vista en el
         if(eventSystem.currentSelectedGameObject != null &&
             eventSystem.currentSelectedGameObject.transform.parent.parent == transform)
         {
             Transform rectChild = eventSystem.currentSelectedGameObject.transform;
-            float dist = Vector3.Dot(rectChild.position - transform.position, transform.up);
-
-            if (Mathf.Abs(dist) <= 0.1f)
-                dist = 0;
-
-            scrollAm += dist * Time.unscaledDeltaTime;
+            float dist = (topDist - Vector3.Dot(rectChild.position - transform.position, transform.up))/ length;
+            scrollAm = Mathf.MoveTowards(scrollAm, 1 - dist, Time.unscaledDeltaTime);
 
         }
         scrollAm = Mathf.Clamp01(scrollAm);

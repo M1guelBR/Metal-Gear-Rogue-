@@ -31,10 +31,10 @@ TagManager:
   - CollidersEscAux
   - Sonido
   - SnakeCollider
-  - 
-  - 
-  - 
-  - 
+  - MiniMapa
+  - Planta1
+  - Planta2
+  - Planta3
   - 
   - 
   - 

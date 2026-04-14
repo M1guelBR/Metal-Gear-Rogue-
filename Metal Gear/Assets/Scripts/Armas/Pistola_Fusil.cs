@@ -121,7 +121,8 @@ public class Pistola_Fusil : Arma
 
                     if (!colDisp.objetoPadre.GetComponent<Soldier>().EstaVivo())
                     {
-                        colDisp.objetoPadre.GetComponent<Soldier>().ThrowDirection(colDisp.transform.forward * 0.1f, FindObjectOfType<Snake>());
+                        //colDisp.objetoPadre.GetComponent<Soldier>().ThrowDirection(colDisp.transform.forward * 0.1f, FindObjectOfType<Snake>());
+                        colDisp.objetoPadre.GetComponent<Soldier>().Throw(null, colDisp.transform.forward ,0.1f, false);
                     }
                     else if (esJug)
                     {

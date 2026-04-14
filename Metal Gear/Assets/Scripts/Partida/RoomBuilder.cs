@@ -5,14 +5,16 @@ using System.Linq;
 using UnityEngine.InputSystem;
 using UnityEngine.AI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Rendering.Universal;
 
 public class RoomBuilder : MonoBehaviour
 {
 
     List<GameObject> salasAUsar = new List<GameObject>();
     List<GameObject> salasUsadas = new List<GameObject>();
-    List<GameObject> salasRef= new List<GameObject>();
+    List<GameObject> salasRef = new List<GameObject>();
     List<GameObject> pasillos = new List<GameObject>();
+    public List<GameObject> aCheck = new List<GameObject>();
     [Range(.5f, 10)]
     public float escala = 3;
 
@@ -39,66 +41,80 @@ public class RoomBuilder : MonoBehaviour
     int numSala = 0;
     int repOverlap = 0;
 
-
-    bool espera = false, esperaAux = false, overlap = false;
     bool terminadoSalas = false;
     Vector3 spawnPoint = Vector3.zero;
     float tiempoJug = 0.5f;
-    [SerializeField]GameObject camLoad;
+    [SerializeField] GameObject camLoad;
     List<int> vestSoldados = new List<int>();
 
     int mision, auxMisionData;
     int numJugs;
-    [SerializeField] Transform cubeAux;
+    [SerializeField, Range(0, 15)] float alturaPlantas = 3;
+    [SerializeField, Range(1, 6)] int maxPlantas = 3;
+    //Asignaciones multijugador
+    [SerializeField] UniversalRendererData[] renderers;
+    [SerializeField] RenderTexture[] renderTex;
+    [SerializeField] Material[] radarMats;
+
+    //Sombras
+
+    [SerializeField] Transform shadowProjector;
 
     // Start is called before the first frame update
     void Start()
     {
-        try
-        {
-            numJugs = FindObjectOfType<MultiplayerHandler>().cantJugadores;
-        }
-        catch
-        {
-            numJugs = 1;
-        }
+        numJugs = Mathf.Max(1, FindObjectsOfType<MultipAux>().Length);
+
         //PruebaWhile.Write("", true);
 
         salasAUsar.AddRange(Resources.LoadAll<GameObject>("Prefabs/Salas"));
 
         maxSalas = Random.Range(7, 11);
-        
 
+        
     }
 
     // Update is called once per frame
     void Update()
     {
-        
-        //Crea las habitaciones y comprueba si encajan
-        if (numSala < maxSalas && !espera)
+
+        //Crea todas las salas que puede mientras no se solapen
+        //Con un while lo hace en un frame
+        while (numSala < maxSalas)
         {
             //print("step 0");
             if (terminadoSalas)
             {
                 numSala = maxSalas;
                 //print("terminado");
-                return;
+                break;
             }
             terminadoSalas = haTerminadoSala();
-            espera = true;
+            bool solapan = SolapanSalas();
+            List<float> alturas = new List<float>();
+            int cantPlantas = CalculaAlturas(ref alturas);
+
+            if (solapan || cantPlantas > maxPlantas)
+                DeshaceSala();
+            else
+                GrabaSala();
         }
 
-        else if(numSala == maxSalas + 1)
+        if (numSala == maxSalas + 1)
         {
+
             //print("step 2");
+            this.GetComponent<GameManager>().PonMultiplayer(renderTex, radarMats);
             this.GetComponent<NavMeshSurface>().BuildNavMesh();
+
+            //Minimapa y plantas
+            HallaExtremos();
 
 
             //----------MISIONES
 
             //auxMisionData = (Random.Range(0, 100) % 3) + 2; // Datos auxiliares (número de ficheros a borrar, numero de soldados que conocen informacion, numero de columnas)
-            
+
             //print("Mision tipo " + mision.ToString());
 
 
@@ -291,14 +307,17 @@ public class RoomBuilder : MonoBehaviour
 
             Destroy(camLoad, 0);
 
-            GetComponent<SettingsManager>().LoadAll();
+            GetComponent<SettingsManager>().LoadAll(0);
             GetComponent<GameManager>().IndicaMision(mision, auxMisionData);
+            GetComponent<GameManager>().salasEnJuego = salasRef;
+            GetComponent<Musica>().enabled = true;
 
-            Destroy(this,0);
-            
+            numSala = maxSalas + 2;
+            //Destroy(this, 0);
+
         }
 
-        else if(numSala == maxSalas)
+        else if (numSala == maxSalas)
         {
             //print("step 1");
             //Si el mapa no vale (no hay suficientes salas y/o no hay posibles salidas, se resetea y vovlemos a empezar)
@@ -334,9 +353,11 @@ public class RoomBuilder : MonoBehaviour
                 sala.isStatic = true;
 
 
-                Destroy(sala.GetComponent<DibujosSala>(), 0);
+                //Destroy(sala.GetComponent<DibujosSala>(), 0);
 
-                Destroy(sala.GetComponent<Sala>(), 0);
+                //Destroy(sala.GetComponent<Sala>(), 0);
+
+
                 List<RutaSoldado> rutasEnSala = new List<RutaSoldado>();
                 aDest = new List<GameObject>();
 
@@ -413,12 +434,12 @@ public class RoomBuilder : MonoBehaviour
                 //Por si quiero que no aparezcan soldados
                 //rutasEnSala = new List<RutaSoldado>();
 
-                foreach(RutaSoldado ruta in rutasEnSala)
+                foreach (RutaSoldado ruta in rutasEnSala)
                 {
                     GameObject soldado = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/NPCs/Soldier"));
                     //soldado.GetComponent<NavMeshAgent>().enabled = false;
                     //QuitaCloneNombre(soldado);
-                    for(int i = 0; i < ruta.posiciones.Count; i++)
+                    for (int i = 0; i < ruta.posiciones.Count; i++)
                     {
                         soldado.GetComponent<Soldier>().posiciones.Add(ruta.GetPosition(i));
                         soldado.GetComponent<Soldier>().tiempoEspera.Add(ruta.tiempos[i]);
@@ -430,7 +451,7 @@ public class RoomBuilder : MonoBehaviour
 
 
                 //Destruimos de manera segura los objetos no necesarios
-                for(int i = 0; i < aDest.Count; i++)
+                for (int i = 0; i < aDest.Count; i++)
                 {
                     Destroy(aDest[i], 0);
                     aDest[i] = null;
@@ -442,7 +463,7 @@ public class RoomBuilder : MonoBehaviour
             //Hacer salidas
 
             //Si no quedan encajes disponibles, lo cambia por un pasillo sin usar
-            if(puertaEncajePos.Count == 0)
+            if (puertaEncajePos.Count == 0)
             {
                 //Escogemos el pasillo que va a ser salida
                 GameObject pasASal = pasillos[Random.Range(0, pasillos.Count)];
@@ -545,13 +566,13 @@ public class RoomBuilder : MonoBehaviour
                 }
 
                 //Añadimos bloqueos a los encajes que quedan sin bloquear
-                for(int i = 0; i < puertaEncajePos.Count; i++)
+                for (int i = 0; i < puertaEncajePos.Count; i++)
                 {
                     Transform puertaBloqueo = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/Pasillos/PuertaBlock")).transform;
                     puertaBloqueo.position = puertaEncajePos[i];// - (escala * new Vector3(0.147558f, -0.019718f, 0.24779f));// Hay que sumarle el offset de la puerta
                     puertaBloqueo.forward = puertaEncajeFor[i];
 
-                    Vector3 offset = (puertaBloqueo.up * -0.24779f) + (puertaBloqueo.right * 0.147558f) + (puertaBloqueo.forward* -0.019718f);
+                    Vector3 offset = (puertaBloqueo.up * -0.24779f) + (puertaBloqueo.right * 0.147558f) + (puertaBloqueo.forward * -0.019718f);
                     puertaBloqueo.position -= (escala * offset);
 
                     puertaBloqueo.localScale = escala * new Vector3(1, 1, 1);
@@ -559,6 +580,7 @@ public class RoomBuilder : MonoBehaviour
                 aDest = new List<GameObject>();
 
             }
+
 
 
             //Quita las puertas para que pueda hacer bien el navMesh
@@ -575,12 +597,13 @@ public class RoomBuilder : MonoBehaviour
             {
                 crate.Inicia();
             }
+            this.GetComponent<GameManager>().BuscaControles();
 
             //Crear a los Snakes
             {
                 GameObject auxSnake = Resources.Load<GameObject>("Prefabs/Player/SnakeAux");
-                GetComponent<PlayerInputManager>().playerPrefab = auxSnake;
-                for(int i = 0; i < numJugs; i++)
+                //GetComponent<PlayerInputManager>().playerPrefab = auxSnake;
+                for (int i = 0; i < numJugs; i++)
                 {
                     GameObject jugAux = Instantiate(auxSnake, spawnPoint, Quaternion.identity);
 
@@ -590,76 +613,39 @@ public class RoomBuilder : MonoBehaviour
                     Vector3 offset = new Vector3(Mathf.Cos(angulo), Mathf.Sin(angulo), 0) * radio;
                     jugAux.transform.position += offset;
                     jugAux.GetComponent<AuxSnakeGen>().enabled = true;
-
+                    GetComponent<GameManager>().PonJugadorEnLista(jugAux.transform.GetChild(0).GetComponent<Snake>());
                 }
                 //snake.GetComponent<CharacterController>().enabled = true;
-
             }
             //this.GetComponent<GameManager>().ActualizaEscala();
             numSala = maxSalas + 1;
 
+
+            PonRenderers();
+
+
             //Debug.Break();
 
         }
+
+        else if(numSala == maxSalas + 2)
+        {
+            Destroy(this, 0);
+        }
+
+        //Debug.Break();
     }
 
     private void FixedUpdate()
     {
-
-        //Comprobacion de si encajan con un frame de físicas de margen
-        if (espera)
-        {
-            if (esperaAux )
-            {
-                espera = false;
-                if (overlap)
-                {
-                    repOverlap += 1;
-                    DestroyImmediate(salaBack);
-                    if (encajeBack != null)
-                        DestroyImmediate(encajeBack);
-
-                    puertasDispPos = new List<Vector3>(); puertasDispPos.AddRange(backPPos);
-                    puertasDispFor = new List<Vector3>(); puertasDispFor.AddRange(backPFor);
-                    puertaEncajePos = new List<Vector3>(); puertaEncajePos.AddRange(backEPos);
-                    puertaEncajeFor = new List<Vector3>(); puertaEncajeFor.AddRange(backEFor);
-                    salasUsadas = new List<GameObject>(); salasUsadas.AddRange(salasUsadasBack);
-                    pasillos = new List<GameObject>(); pasillos.AddRange(pasillosBack);
-                    if(repOverlap > 10)
-                    {
-                        terminadoSalas = true;
-                        return;
-                    }
-                    terminadoSalas = false;
-
-                }
-                else
-                {
-                    repOverlap = 0;
-                    salasRef.Add(salaBack);
-                    salasUsadas.Add(salasAUsar[indAdd]);
-                    if (encajeBack != null)
-                        salasRef.Add(encajeBack);
-                    numSala += 1;
-                }
-            }
-            else
-            {
-                esperaAux = true;
-            }
-        }
-        if(numSala == maxSalas +1 && tiempoJug > 0)
+        if (numSala == maxSalas + 1 && tiempoJug > 0)
         {
             tiempoJug -= Time.fixedDeltaTime;
-            if(tiempoJug < 0)
+            if (tiempoJug < 0)
             {
                 tiempoJug = 0;
             }
         }
-    }
-
-    private void LateUpdate()
-    {
     }
 
     public void CreaSala()
@@ -682,7 +668,7 @@ public class RoomBuilder : MonoBehaviour
             salasUsadasBack = new List<GameObject>();
             pasillosBack = new List<GameObject>();
 
-            backPPos.AddRange(puertasDispPos); 
+            backPPos.AddRange(puertasDispPos);
             backPFor.AddRange(puertasDispFor);
             backEPos.AddRange(puertaEncajePos);
             backEFor.AddRange(puertaEncajeFor);
@@ -694,7 +680,7 @@ public class RoomBuilder : MonoBehaviour
         //Encuentra una sala que tenga mas de una puerta si no hay muchas ya (si ya hay varias entonces da igual)
         //Que no esté usada
         //Y que tenga puertas (hay que quitar a futuro esa condicion, es para testear sin haber acabado las otras salas)
-        int i = -1; int iterRand= 0;
+        int i = -1; int iterRand = 0;
 
         while (sala == null)
         {
@@ -754,7 +740,7 @@ public class RoomBuilder : MonoBehaviour
                 int indPuertaAnclaje = Random.Range(0, puertaEncajePos.Count);
                 //Calcula la rotacion a aplicar para acoplarse
                 Quaternion rot = Quaternion.FromToRotation(sala.puertasFuera[indPuertaNueva], -puertaEncajeFor[indPuertaAnclaje]);
-                rot = Quaternion.Euler(0,rot.eulerAngles.y,0);
+                rot = Quaternion.Euler(0, rot.eulerAngles.y, 0);
 
                 nuevaSala.transform.rotation = rot;
                 //Se acopla
@@ -787,17 +773,18 @@ public class RoomBuilder : MonoBehaviour
 
                 //Creamos el encaje
 
-                int numEncaje = Random.Range(1, 5);
+                int numEncaje = Random.Range(1, 6);
 
                 //Hay que hacer que haya mas puertas que las justas y que si hay dos habitaciones que se solapen, el encaje tiene que ser de tipo largo
 
-                // num = 1 ó 2 -> 2 puertas
-                // num = 3 -> 3 puertas
-                // num = 4 -> 4 puertas
-                if (sala.puertasPosiciones.Length == 1 && puertasDispPos.Count == 1 && numEncaje < 3)
-                    numEncaje = Random.Range(3, 5);
+                // num = 1,2,3 -> 2 puertas
+                // num = 4 -> 3 puertas
+                // num = 5 -> 4 puertas
+                if (sala.puertasPosiciones.Length == 1 && puertasDispPos.Count == 1 && numEncaje < 4)
+                    numEncaje = Random.Range(4, 6);
 
-
+                if (numEncaje == 3)
+                    print("encaje con escalera");
 
 
 
@@ -845,7 +832,7 @@ public class RoomBuilder : MonoBehaviour
                 //Por último, añadimos las puertas sin usar de la habitación y del encaje y quitamos la puerta usada por la habitación anterior
 
                 //Añadimos las puertas de la nueva sala creada
-                for(int k = 0; k < sala.puertasPosiciones.Length; k++)
+                for (int k = 0; k < sala.puertasPosiciones.Length; k++)
                 {
                     if (k == indPuertaNueva)
                         continue;
@@ -858,9 +845,9 @@ public class RoomBuilder : MonoBehaviour
                 }
 
                 //Añadimos las puertas del nuevo encaje
-                for(int k = 0; k < encaje.GetComponent<Sala>().puertasPosiciones.Length; k++)
+                for (int k = 0; k < encaje.GetComponent<Sala>().puertasPosiciones.Length; k++)
                 {
-                    if(k == acopleAHecho || k == acopleANueva)
+                    if (k == acopleAHecho || k == acopleANueva)
                     {
                         continue;
                     }
@@ -905,8 +892,6 @@ public class RoomBuilder : MonoBehaviour
     public bool haTerminadoSala()
     {
         CreaSala();
-        esperaAux = false;
-        overlap = false;
         return puertasDispPos.Count == 0 && puertaEncajePos.Count == 0;
     }
 
@@ -917,19 +902,14 @@ public class RoomBuilder : MonoBehaviour
         Vector3 direccionReal = Vector3.Scale(tr.localScale, inicio);
 
         direccionReal = (tr.forward * direccionReal.z) + (tr.right * direccionReal.x) + (tr.up * direccionReal.y);
-        
+
         return tr.position + direccionReal;
 
     }
 
-    public void overlap_()
-    {
-        //print("Se solapan habitaciones");
-        overlap = true;
-    }
     private void ResetSalas()
     {
-        foreach(GameObject g in salasRef)
+        foreach (GameObject g in salasRef)
         {
             Destroy(g, 0);
         }
@@ -986,7 +966,7 @@ public class RoomBuilder : MonoBehaviour
 
         //El índice de la vestimenta a crear
 
-        int index = Random.Range(0,1296);
+        int index = Random.Range(0, 1296);
         while (vestSoldados.Contains(index))
         {
             Debug.Log("while roñoso");
@@ -1002,7 +982,7 @@ public class RoomBuilder : MonoBehaviour
 
         string[] posVest = new string[6] { "-", "R", "G", "Y", "B", "M" };
 
-        for(int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++)
         {
             int termino_i = index % 6;
             vest[i] = posVest[termino_i];
@@ -1012,8 +992,9 @@ public class RoomBuilder : MonoBehaviour
 
         string vestHash = vest[0] + vest[1] + vest[2] + vest[3];
 
+        bool mujer = Random.Range(0, 100) % 2 == 0;
 
-        soldado.Vestirse(vestHash);
+        soldado.Vestirse(vestHash, mujer);
 
 
 
@@ -1027,6 +1008,276 @@ public class RoomBuilder : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    //Que hacemos con las plantas
+    //Muy buena pregunta
+
+    //Deteccion de si se solapan salas
+    bool SolapanSalas(bool meteUltimos = true ,bool printea = false)
+    {
+        aCheck = new List<GameObject>(); aCheck.AddRange(salasRef);
+        if (salaBack != null && meteUltimos){aCheck.Add(salaBack);}
+        if(encajeBack != null && meteUltimos) { aCheck.Add(encajeBack); }
+
+        for (int i = 0; i < aCheck.Count - 1; i++)
+        {
+            for (int j = i + 1; j < aCheck.Count; j++)
+            {
+                //print(aCheck[i].transform.localScale);
+                if (DetectaColisionSalas(aCheck[i].GetComponent<Sala>(), aCheck[j].GetComponent<Sala>()))
+                {
+                    if(printea)
+                        print("se detecta colision de " + aCheck[i].name + " con " + aCheck[j].name);
+
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    bool DetectaColisionSalas(Sala salaA, Sala salaB)
+    {
+
+
+        //Para cada cubo de ambas salas, vemos si chocan
+        for (int i = 0; i < salaA.centro.Length; i++)
+        {
+            List<Vector3[]> aristasA = salaA.getAristas(i);
+            List<Vector3[]> carasA = salaA.getCaras(i);
+
+            for (int j = 0; j < salaB.centro.Length; j++)
+            {
+                List<Vector3[]> aristasB = salaB.getAristas(j);
+                List<Vector3[]> carasB = salaB.getCaras(j);
+
+                //Vemos si el cubo B está en el cubo A y viceversa
+                if (salaB.puntoEnCubo(salaA.getCentro(i), j) || salaA.puntoEnCubo(salaB.getCentro(j), i))
+                {
+                    return true;
+                }
+
+
+                List<Vector3> puntoColision = new List<Vector3>();
+                //Si las aristas de uno tocan a las caras de otro o vice versa, detecta colision y retorna true
+                if (AristasEnCaras(aristasA, carasB, ref puntoColision))
+                {
+                    //Vemos por ultimo si el punto queda dentro del cubo j-esimo de B
+                    if (salaB.puntosEnCubo(puntoColision, j))
+                    {
+                        //puntosColision.AddRange(puntoColision);
+                        return true;
+                    }
+                }
+                if (AristasEnCaras(aristasB, carasA, ref puntoColision))
+                {
+                    //Vemos por ultimo si el punto queda dentro del cubo i-esimo de A
+                    if (salaA.puntosEnCubo(puntoColision, i))
+                    {
+                        //puntosColision.AddRange(puntoColision);
+                        return true;
+                    }
+                }
+            }
+        }
+
+        //Si no detecta nada, devuelve falso
+        return false;
+    }
+
+    bool AristasEnCaras(List<Vector3[]> aristas, List<Vector3[]> caras, ref List<Vector3> puntos)
+    {
+        List<Vector3> puntos_ = new List<Vector3>();
+        //Implementar calculos de TestColision
+        foreach (Vector3[] arista in aristas)
+        {
+            foreach (Vector3[] cara in caras)
+            {
+                Vector3 direccion = arista[1] - arista[0];
+                if (Vector3.Dot(direccion, cara[1]) == 0)
+                {
+                    continue;
+                }
+
+                float t = (Vector3.Dot(cara[1], cara[0]) - Vector3.Dot(cara[1], arista[0])) / Vector3.Dot(direccion, cara[1]);
+
+                //El punto no queda en la arista
+                if (t > 1 || t < 0)
+                {
+                    continue;
+                }
+
+                puntos_.Add(arista[0] + (direccion * t));
+                //return true;
+
+            }
+        }
+        puntos = puntos_;
+        return puntos_.Count > 0;
+    }
+
+    void HallaExtremos()
+    {
+
+        //Los extremos es un for y ya está
+        //Tenemos que tener todos los pasillos, salas, encajes y salidas guardados en una lista :(
+
+
+        //Las plantas es mas dificil
+        //Cada pasillo tiene un hijo con un componente llamado IndicadorPlanta
+        //Los buscamos todos y comparamos sus alturas
+        //Si la altura pasa cierto umbral con todos los que hemos recorrido, es que es una nueva planta
+        //Simplemente tenemos que guardar cuantas plantas hay y donde empieza el edificio(esto es, planta mas baja)
+
+        IndicadorPlanta[] indicadores = FindObjectsOfType<IndicadorPlanta>();
+        List<float> alturas = new List<float>();
+
+
+        //Para cada indicador vemos su altura respecto al resto
+        for (int i = 0; i < indicadores.Length; i++)
+        {
+            //Si es el primer indicador, lo añadimos del tiron
+            if (alturas.Count == 0)
+            {
+                alturas.Add(indicadores[i].transform.position.y);
+                continue;
+            }
+
+            //Comparamos con el resto
+            bool distaDeTodos = true;
+            for (int j = 0; j < alturas.Count; j++)
+            {
+                //Vemos cuanto hay de este indicador al resto
+                float diffAlt = Mathf.Abs(alturas[j] - indicadores[i].transform.position.y);
+
+                //Si no es suficiente, entonces no dista una planta como minimo del resto y por lo tanto
+                //No es una planta nueva. Ajustamos el bool y rompemos bucle
+                if (diffAlt < alturaPlantas)
+                {
+                    distaDeTodos = false;
+                    break;
+                }
+            }
+            //Si es planta nueva, la añadimos a la lista para comparar
+            if (distaDeTodos)
+            {
+                alturas.Add(indicadores[i].transform.position.y);
+            }
+
+        }
+
+        //Ordenamos las alturas
+        alturas.Sort();
+
+        //Quitamos los indicadores para tener menos objetos en la escena e indicamos a cada sala en que planta esta
+        for (int i = 0; i < indicadores.Length; i++)
+        {
+            //Tomar cada sala y decirle su planta para las sombras
+            GameObject indGO = indicadores[i].gameObject;
+            indicadores[i] = null;
+            Destroy(indGO, 0);
+
+        }
+
+        Vector3 centro = this.GetComponent<NavMeshSurface>().navMeshData.sourceBounds.center;
+        Vector3 anchors = this.GetComponent<NavMeshSurface>().navMeshData.sourceBounds.size;
+
+
+        this.GetComponent<GameManager>().IndicaSalas(centro, anchors, alturas.ToArray(), alturaPlantas);
+
+
+    }
+
+    int CalculaAlturas(ref List<float> alturas)
+    {
+
+        IndicadorPlanta[] indicadores = FindObjectsOfType<IndicadorPlanta>();
+        alturas = new List<float>();
+
+
+        //Para cada indicador vemos su altura respecto al resto
+        for (int i = 0; i < indicadores.Length; i++)
+        {
+            //Si es el primer indicador, lo añadimos del tiron
+            if (alturas.Count == 0)
+            {
+                alturas.Add(indicadores[i].transform.position.y);
+                continue;
+            }
+
+            //Comparamos con el resto
+            bool distaDeTodos = true;
+            for (int j = 0; j < alturas.Count; j++)
+            {
+                //Vemos cuanto hay de este indicador al resto
+                float diffAlt = Mathf.Abs(alturas[j] - indicadores[i].transform.position.y);
+
+                //Si no es suficiente, entonces no dista una planta como minimo del resto y por lo tanto
+                //No es una planta nueva. Ajustamos el bool y rompemos bucle
+                if (diffAlt < alturaPlantas)
+                {
+                    distaDeTodos = false;
+                    break;
+                }
+            }
+            //Si es planta nueva, la añadimos a la lista para comparar
+            if (distaDeTodos)
+            {
+                alturas.Add(indicadores[i].transform.position.y);
+            }
+
+        }
+
+        //Ordenamos las alturas
+        alturas.Sort();
+
+
+        return alturas.Count;
+    }
+
+    void PonRenderers()
+    {
+        this.GetComponent<GameManager>().MeteRenderers(renderers);
+    }
+
+    void DeshaceSala()
+    {
+
+        repOverlap += 1;
+        aCheck.RemoveAt(aCheck.Count - 1);
+        DestroyImmediate(salaBack);
+        if (encajeBack != null)
+        {
+            DestroyImmediate(encajeBack);
+            aCheck.RemoveAt(aCheck.Count - 1);
+        }
+
+        puertasDispPos = new List<Vector3>(); puertasDispPos.AddRange(backPPos);
+        puertasDispFor = new List<Vector3>(); puertasDispFor.AddRange(backPFor);
+        puertaEncajePos = new List<Vector3>(); puertaEncajePos.AddRange(backEPos);
+        puertaEncajeFor = new List<Vector3>(); puertaEncajeFor.AddRange(backEFor);
+        salasUsadas = new List<GameObject>(); salasUsadas.AddRange(salasUsadasBack);
+        pasillos = new List<GameObject>(); pasillos.AddRange(pasillosBack);
+        if (repOverlap > 10)
+        {
+            terminadoSalas = true;
+            return;
+        }
+        terminadoSalas = false;
+
+    
+    }
+
+    void GrabaSala()
+    {
+
+        repOverlap = 0;
+        salasRef.Add(salaBack);
+        salasUsadas.Add(salasAUsar[indAdd]);
+        if (encajeBack != null)
+            salasRef.Add(encajeBack);
+        numSala += 1;
     }
 }
 

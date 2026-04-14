@@ -6,17 +6,17 @@ using System;
 
 public class SettingsManager : MonoBehaviour
 {
-    public float sensitivity;
-    public bool invertYT;
-    public bool invertXT;
-    public bool invertYF;
-    public bool invertXF;
+    public float[] sensitivity = new float[4] { 0.75f , 0.75f, 0.75f, 0.75f};
+    public bool[] invertYT = new bool[4] { true, true, true, true};
+    public bool[] invertXT = new bool[4] { false, false, false, false};
+    public bool[] invertYF = new bool[4] { false, false, false, false};
+    public bool[] invertXF = new bool[4] { false, false, false, false};
     internal int resInd = 0;
     public bool fullscreen = true;
     public float musicVol = 1;
     public float effVol = 1;
-    public int TFov = 90;
-    public int FFov = 90;
+    public int[] TFov = new int[4] { 75, 75, 75, 75};
+    public int[] FFov = new int[4] { 75, 75, 75, 75 };
 
 
     public AudioMixer mixer;
@@ -24,52 +24,74 @@ public class SettingsManager : MonoBehaviour
 
 
 
-    public void Sensitivity(float value)
+    public void Sensitivity(float value, int id)
     {
         value = Mathf.Clamp(value, .25f, 1);
-        PlayerPrefs.SetFloat("Sensitivity", value);
-        if (FindObjectOfType<Snake>())
+        string key = "Sensitivity" + id.ToString();
+        PlayerPrefs.SetFloat(key, value);
+
+        if (FindObjectOfType<GameManager>())
         {
-            FindObjectOfType<Snake>().SetSensitivity(value);
+            FindObjectOfType<GameManager>().SetSensitivity(value, id);
         }
     }
-    public void YThird(bool input)
+    public void YThird(bool input, int id)
     {
-        invertYT = input;
-        PlayerPrefs.SetInt("invertYT", invertYT ? 1 : 0);
-        if (FindObjectOfType<Snake>())
+        invertYT[id] = input;
+        PlayerPrefs.SetInt("invertYT" + id.ToString(), invertYT[id] ? 1 : 0);
+
+        if (FindObjectOfType<GameManager>())
         {
-            FindObjectOfType<Snake>().SetInversiones(1, input);
+            FindObjectOfType<GameManager>().SetInversiones(1, input, id);
         }
     }
-    public void XThird(bool input)
+    public void XThird(bool input, int id)
     {
 
-        invertXT = input;
-        PlayerPrefs.SetInt("invertXT", invertXT ? 1 : 0);
-        if (FindObjectOfType<Snake>())
+        invertXT[id] = input;
+        PlayerPrefs.SetInt("invertXT" + id.ToString(), invertXT[id] ? 1 : 0);
+
+        if (FindObjectOfType<GameManager>())
         {
-            FindObjectOfType<Snake>().SetInversiones(0, input);
+            FindObjectOfType<GameManager>().SetInversiones(0, input, id);
         }
     }
-    public void YFirst(bool input)
+    public void YFirst(bool input, int id)
     {
-        invertYF = input;
-        PlayerPrefs.SetInt("invertYF", invertYF ? 1 : 0);
-        if (FindObjectOfType<Snake>())
+        invertYF[id] = input;
+        PlayerPrefs.SetInt("invertYF" + id.ToString(), invertYF[id] ? 1 : 0);
+
+        if (FindObjectOfType<GameManager>())
         {
-            FindObjectOfType<Snake>().SetInversiones(3, input);
+            FindObjectOfType<GameManager>().SetInversiones(3, input, id);
         }
     }
-    public void XFirst(bool input)
+    public void XFirst(bool input, int id)
     {
 
-        invertXF = input;
-        PlayerPrefs.SetInt("invertXF", invertXF ? 1 : 0);
-        if (FindObjectOfType<Snake>())
+        invertXF[id] = input;
+        PlayerPrefs.SetInt("invertXF" + id.ToString(), invertXF[id] ? 1 : 0);
+
+        if (FindObjectOfType<GameManager>())
         {
-            FindObjectOfType<Snake>().SetInversiones(2, input);
+            FindObjectOfType<GameManager>().SetInversiones(2, input, id);
         }
+    }
+    public void ThirdFov(int input, int id)
+    {
+        TFov[id] = input;
+        PlayerPrefs.SetInt("TFov" + id.ToString(), input);
+
+        if (FindObjectOfType<GameManager>())
+            FindObjectOfType<GameManager>().SetFov(input, false, id);
+    }
+    public void FirstFov(int input, int id)
+    {
+        FFov[id] = input;
+        PlayerPrefs.SetInt("FFov" + id.ToString(), input);
+
+        if (FindObjectOfType<GameManager>())
+            FindObjectOfType<GameManager>().SetFov(input, true, id);
     }
     public void Resolution(int input)
     {
@@ -99,56 +121,62 @@ public class SettingsManager : MonoBehaviour
         //Hacer bien
         mixer.SetFloat("effVol", ValueToVolume(effVol));
     }
-    public void ThirdFov(int input)
-    {
-        TFov = input;
-        PlayerPrefs.SetInt("TFov", input);
-        if (FindObjectOfType<Snake>())
-            FindObjectOfType<Snake>().SetFov(input, false);
-    }
-    public void FirstFov(int input)
-    {
-        FFov = input;
-        PlayerPrefs.SetInt("FFov", input);
-        if (FindObjectOfType<Snake>())
-            FindObjectOfType<Snake>().SetFov(input, true);
-    }
 
 
-    public void SaveAll()
+    public void SaveAll(int id)
     {
-        Sensitivity(sensitivity);
-        YThird(invertYT);
-        XThird(invertXT);
-        YFirst(invertYF);
-        XFirst(invertXF);
-        Resolution(resInd);
-        Fullscreen(fullscreen);
-        MusicVol(musicVol);
-        EffectsVol(effVol);
-        ThirdFov(TFov);
-        FirstFov(FFov);
+        //return;
+        //Primero los que dependen de cada jugador
+        //for (int id = 0; id < 1; id++)
+        if (id >= 0)
+        {
+            Sensitivity(sensitivity[id], id);
+            YThird(invertYT[id], id);
+            XThird(invertXT[id], id);
+            YFirst(invertYF[id], id);
+            XFirst(invertXF[id], id);
+            ThirdFov(TFov[id], id);
+            FirstFov(FFov[id], id);
+        }
+
+        //Esto es lo unico que puede cambiar el jugador 1
+        if (id == 0)
+        {
+            Resolution(resInd);
+            Fullscreen(fullscreen);
+            MusicVol(musicVol);
+            //return;
+            EffectsVol(effVol);
+        }
 
     }
-    public void LoadAll()
+    public void LoadAll(int id = -1)
     {
-
-        sensitivity = PlayerPrefs.GetFloat("Sensitivity", .5f);
-        invertYT = PlayerPrefs.GetInt("invertYT", 1) == 1;
-        invertXT = PlayerPrefs.GetInt("invertXT", 0) == 1;
-        invertYF = PlayerPrefs.GetInt("invertYF", 0) == 1;
-        invertXF = PlayerPrefs.GetInt("invertXF", 0) == 1;
-
-        resInd = PlayerPrefs.GetInt("resInd", Screen.resolutions.Length - 1);
-        fullscreen = PlayerPrefs.GetInt("fullscreen", 1) == 1;
-
-        musicVol = PlayerPrefs.GetFloat("musicVol", 1);
-        effVol = PlayerPrefs.GetFloat("effVol", 1);
-
-        TFov = PlayerPrefs.GetInt("TFov", 75);
-        FFov = PlayerPrefs.GetInt("FFov", 75);
         
-        SaveAll();
+        //Primero los que dependen de cada jugador
+        if(id >= 0)
+        {
+            sensitivity[id] = PlayerPrefs.GetFloat("Sensitivity" + id.ToString(), .5f);
+            invertYT[id] = PlayerPrefs.GetInt("invertYT" + id.ToString(), 1) == 1;
+            invertXT[id] = PlayerPrefs.GetInt("invertXT" + id.ToString(), 0) == 1;
+            invertYF[id] = PlayerPrefs.GetInt("invertYF" + id.ToString(), 0) == 1;
+            invertXF[id] = PlayerPrefs.GetInt("invertXF" + id.ToString(), 0) == 1;
+            TFov[id] = PlayerPrefs.GetInt("TFov" + id.ToString(), 75);
+            FFov[id] = PlayerPrefs.GetInt("FFov" + id.ToString(), 75);
+
+        }
+
+        //Esto es lo que solo puede cambiar el jugador 1
+        if (id == 0)
+        {
+            resInd = PlayerPrefs.GetInt("resInd", Screen.resolutions.Length - 1);
+            fullscreen = PlayerPrefs.GetInt("fullscreen", 1) == 1;
+
+            musicVol = PlayerPrefs.GetFloat("musicVol", 1);
+            effVol = PlayerPrefs.GetFloat("effVol", 1);
+        }
+
+        SaveAll(id);
 
     }
 
@@ -156,7 +184,7 @@ public class SettingsManager : MonoBehaviour
     {
         if (autoLoad)
         {
-            LoadAll();
+            LoadAll(0);
         }
     }
 
@@ -167,18 +195,21 @@ public class SettingsManager : MonoBehaviour
 
     public void ResetSettings()
     {
-        sensitivity = 0.75f;
-        invertYT = true;
-        invertXT = false;
-        invertYF = false;
-        invertXF = false;
+        sensitivity = new float[] { 0.75f , 0.75f, 0.75f, 0.75f};
+        invertYT = new bool[] { true, true, true, true };
+        invertXT = new bool[] { false, false, false, false };
+        invertYF = new bool[] { false, false, false, false };
+        invertXF = new bool[] { false, false, false, false };
         resInd = Screen.resolutions.Length - 1;
         fullscreen = true;
         musicVol = 1;
         effVol = 1;
-        TFov = 75;
-        FFov = 75;
-        SaveAll();
+        TFov = new int[] { 75, 75, 75, 75 };
+        FFov = new int[] { 75, 75, 75, 75 };
+        SaveAll(0);
+        SaveAll(1);
+        SaveAll(2);
+        SaveAll(3);
     }
 
 }

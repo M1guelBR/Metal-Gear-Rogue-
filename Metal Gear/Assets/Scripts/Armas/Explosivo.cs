@@ -107,7 +107,7 @@ public class Explosivo : MonoBehaviour
                         if (tirador_ == null)
                             tirador_ = FindObjectOfType<Snake>();
 
-                        sold.ThrowDirection(direc * mag * 2.15f, tirador_);
+                        sold.Throw(tirador_, direc , mag * 2.15f);
 
 
                         sold.QuitaVida(Mathf.Max((sold.Vida() - 0.01f) * mag * 3.5f,0), tirador);
@@ -120,7 +120,8 @@ public class Explosivo : MonoBehaviour
                         direc = Vector3.Scale(sold.transform.position - transform.position, new Vector3(1, 0, 1)).normalized;
                         mag = Mathf.Min(1, 1 / (sold.transform.position - transform.position).magnitude);
 
-                        sold.ThrowDirection(direc * mag * 2.15f, tirador.GetComponent<Snake>());
+                        //sold.ThrowDirection(direc * mag * 2.15f, tirador.GetComponent<Snake>());
+                        sold.Throw(tirador.GetComponent<Snake>(), direc , mag * 2.15f);
 
                         break;
 

@@ -8,6 +8,7 @@ using UnityEngine.SceneManagement;
 
 public class MainMenu : MonoBehaviour
 {
+    [Header("INICIO")]
     [SerializeField] Image blackFade;
     [SerializeField] AudioSource titleTheme;
     float tiempo = 0;
@@ -15,9 +16,13 @@ public class MainMenu : MonoBehaviour
 
     [SerializeField] Button botonInicioDef;
 
-    [SerializeField] GameObject extrasMenu;
-    [SerializeField] GameObject nSnakeCheck;
+    //Seleccion de personajes
+    [Header("SELECCION DE PERSONAJES")]
+    [SerializeField] GameObject characterSelect;
+    [SerializeField] string[] nombresPers;
+    [SerializeField] Sprite[] imagenesPers;
 
+    [Header("NAVEGACION")]
     public Button buttonDef;
     public Toggle toggleDef;
     public enum Modo
@@ -36,8 +41,18 @@ public class MainMenu : MonoBehaviour
         Time.timeScale = 1;
         SetDefaultButton(botonInicioDef.gameObject);
         blackFade.color = new Color(blackFade.color.r, blackFade.color.g, blackFade.color.b, 1 - tiempo);
-        extrasMenu.SetActive(PlayerPrefs.GetInt("NSnake", -1) > -1);
-        nSnakeCheck.SetActive(PlayerPrefs.GetInt("NSnake", -1) > 0);
+
+        //Si vienes de una partida en multijugador, borra los indicadores auxiliares de mandos
+        MultipAux[] auxABorrar = FindObjectsOfType<MultipAux>();
+        print(auxABorrar.Length);
+        for (int i = 0; i < auxABorrar.Length; i++)
+            Destroy(auxABorrar[i].gameObject, 0);
+
+        //Seleccion de personajes
+        characterSelect.SetActive(PlayerPrefs.GetInt("Personajes", 1) > 1);
+
+        //extrasMenu.SetActive(PlayerPrefs.GetInt("NSnake", -1) > -1);
+        //nSnakeCheck.SetActive(PlayerPrefs.GetInt("NSnake", -1) > 0);
     }
 
     // Update is called once per frame
@@ -128,16 +143,26 @@ public class MainMenu : MonoBehaviour
         Application.Quit();
     }
 
-    public void SetNSnake()
+    public void SetCharacter(int dir)
     {
-        if (PlayerPrefs.GetInt("NSnake", -1) == -1)
-            return;
 
-        bool value = PlayerPrefs.GetInt("NSnake", -1) == 1;
-        value = !value;
-        PlayerPrefs.SetInt("NSnake", value ? 1 : 0);
-        nSnakeCheck.SetActive(value);
     }
+    public void OpenMP3Folder()
+    {
+        //Hay que ver como obtener el directorio del juego
+        string directorio = System.IO.Directory.GetCurrentDirectory();
+        if (Application.isEditor)
+            directorio = Application.dataPath;
 
+        //No se por que las @ pero sin eso no funciona
+        directorio.Replace(@"\",@"/");
+
+        directorio += "/Resources/MP3Player/";
+        print(directorio);
+
+        //Ver si hay que cambiar algo con Mac o Linux
+
+        Application.OpenURL("file:///"+directorio);
+    }
 
 }

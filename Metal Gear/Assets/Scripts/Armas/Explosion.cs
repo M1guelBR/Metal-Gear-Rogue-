@@ -11,6 +11,8 @@ public class Explosion : MonoBehaviour
     private void Start()
     {
         this.GetComponent<AudioSource>().pitch = Random.Range(.9f, 1.1f);
+        FindObjectOfType<GameManager>().SonidoFisico(GetComponent<AudioSource>(), GetComponent<AudioSource>().clip, 1, 0, 1);
+        //Debug.Break();
         scale = transform.localScale.x;
     }
     // Update is called once per frame

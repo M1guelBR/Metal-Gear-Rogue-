@@ -42,7 +42,7 @@ public class Snake : MonoBehaviour
     [Range(0, 5)] public float tiempoRot = 1f;
 
     [HideInInspector] public float vel;
-    [Range(0, 5)] public float walkVel, sprVel, arrVel;
+    [Range(0, 5)] public float walkVel, sprVel,agVel, arrVel;
     float vMag;
     public LayerMask sueloLayers;
 
@@ -82,6 +82,7 @@ public class Snake : MonoBehaviour
     [Range(0, 6), SerializeField] float inputAcel;
     [Range(0, 6), SerializeField] float inputDecel;
     Vector3 dirS = Vector3.zero;
+    [Range(0, 1), SerializeField] float camFPSAjuste;
 
     //------------------------------------ ARMAS Y OBJETOS
     [Header("ARMAS Y OBJETOS")]
@@ -107,6 +108,7 @@ public class Snake : MonoBehaviour
     [SerializeField] GameObject objetoHolder;
     [SerializeField] GameObject partRef;
     [SerializeField] GameObject humoCig;
+    Vector3 humoPos = Vector3.zero;
     float tiempoCadencia;
     bool puedeDisparar = true;
     float anguloArma = 0;
@@ -115,8 +117,8 @@ public class Snake : MonoBehaviour
     [SerializeField] AudioClip clipFull;
     [SerializeField] AudioClip clipCura, clipNVG;
     [SerializeField] LineRenderer trailBala;
-    [SerializeField] ScriptableRendererFeature filtroTermico;
-    [SerializeField] ScriptableRendererFeature filtroNVG;
+    ScriptableRendererFeature filtroTermico;
+    ScriptableRendererFeature filtroNVG;
     //[SerializeField] LayerMask layersDisp;
 
 
@@ -137,7 +139,7 @@ public class Snake : MonoBehaviour
     bool grounded = false;
 
     //---------------------------MENUS
-    bool pausa = false;
+    [SerializeField] public bool pausa = false;
     bool informacion = false;
 
 
@@ -162,7 +164,7 @@ public class Snake : MonoBehaviour
     [Header("SONIDO")]
     [SerializeField] SphereCollider sonidoCollider;
     bool paso = false;
-    [SerializeField] AudioClip pasoClip;
+    [SerializeField] AudioClip[] pasoClip;
     [SerializeField] AudioClip scream;
     [SerializeField] AudioClip sonidoClear;
 
@@ -187,10 +189,10 @@ public class Snake : MonoBehaviour
     void Start()
     {
 
-        FindObjectOfType<GameManager>().jugadores.Add(this);
+        //FindObjectOfType<GameManager>().jugadores.Add(this);
 
-        filtroTermico.SetActive(false);
-        filtroNVG.SetActive(false);
+        //filtroTermico.SetActive(false);
+        //filtroNVG.SetActive(false);
         interfaz.snake = this;
 
         if (PlayerPrefs.GetInt("NSnake", -1) == 1)
@@ -211,7 +213,7 @@ public class Snake : MonoBehaviour
             playerInput = this.GetComponent<PlayerInput>();
 
         input = playerInput.currentActionMap;
-        playerID = playerInput.splitScreenIndex;
+        //playerID = playerInput.splitScreenIndex;
 
 
 
@@ -258,6 +260,7 @@ public class Snake : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        this.GetComponent<AudioSource>().pitch = Time.timeScale;
         if (GetButtonDown("MouseToggle"))
         {
             mouse = !mouse;
@@ -295,18 +298,20 @@ public class Snake : MonoBehaviour
             //print(t);
 
             //Primer paso
-            if (t > 0.01f && t < 0.5f && !paso)
+            if ((t > 0.01f && t < 0.25f) && !paso)
             {
                 paso = true;
                 SonidoRadio(2.5f * vMag / sprVel);
-                this.GetComponent<AudioSource>().PlayOneShot(pasoClip, vMag * .05f / sprVel);
+                int i = Random.Range(0, 3);
+                this.GetComponent<AudioSource>().PlayOneShot(pasoClip[i], vMag * 0.15f/ sprVel);
 
             }
             else if (t > 0.5f && paso)
             {
                 paso = false;
                 SonidoRadio(2.5f * vMag / sprVel);
-                sonidoLocal.PlayOneShot(pasoClip, vMag * .05f / sprVel);
+                int i = Random.Range(0, 3);
+                this.GetComponent<AudioSource>().PlayOneShot(pasoClip[i], vMag * 0.15f/ sprVel);
             }
 
         }
@@ -514,9 +519,6 @@ public class Snake : MonoBehaviour
             {
                 vida = Mathf.Clamp(vida - (1.5f * Time.deltaTime), 0, 100);
 
-                var partHumo = humoCig.GetComponent<ParticleSystem>().velocityOverLifetime;
-                partHumo.z = (vMag / sprVel) * -0.25f;
-
 
             }
 
@@ -532,7 +534,7 @@ public class Snake : MonoBehaviour
         if (GetButtonDown("Escape") && !pausa)
             Pausa();
 
-        if (pausa)
+        if (pausa || informacion)
             Cursor.lockState = CursorLockMode.None;
 
 
@@ -631,7 +633,11 @@ public class Snake : MonoBehaviour
 
         interfaz.CamaraRadar();
         if (caja)
+        {
+            HandleFPSCam(Time.deltaTime);
             return;
+
+        }
 
         //Choque paredes
         {
@@ -762,7 +768,7 @@ public class Snake : MonoBehaviour
                         if (pega)
                         {
                             int i = Random.Range(1, 4);
-                            this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .35f);
+                            this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .55f);
                             pega = false;
 
                         }
@@ -802,6 +808,30 @@ public class Snake : MonoBehaviour
                     this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .35f);
                     pega = false;
                 }
+                //Le intenta quitar el arma al soldado
+                else if(snakeAnimator.GetCurrentAnimatorStateInfo(1).normalizedTime >= 0.15f && armaEnMano == null && GetButton("Apuntar"))
+                {
+                    if (colliderSnake.soldadoCQC.Arma() != null)
+                    {
+                        int[] balasArma = colliderSnake.soldadoCQC.balasArma();
+                        int balasTotales = balasArma[0];
+                        //Coge el arma
+                        RecibObjeto(colliderSnake.soldadoCQC.Arma());
+                        RecibeBalas(colliderSnake.soldadoCQC.Arma(), balasTotales - colliderSnake.soldadoCQC.Arma().balasArma());
+                        int indexArma = armasInv.IndexOf(colliderSnake.soldadoCQC.Arma());
+                        armaEnMano = armasInv[indexArma]; SetArma();
+                        //Le quita el arma al soldado
+                        colliderSnake.soldadoCQC.PierdeArma(colliderSnake.soldadoCQC.Arma());
+                        //La pone como lista
+                        snakeAnimator.SetBool("ArmaLista", true);
+                        //Toma al soldado de rehen
+                        colliderSnake.soldadoCQC.Rehen(transform.position, this.agach, true);
+                        colliderSnake.soldadoCQC.Dolor();
+                        this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Freeze"), .375f);
+                    }
+                    snakeAnimator.Play("ArmasLayer.QuitarArma", 1, 0);
+                    punchCount = 0;
+                }
 
             }
             else if(punchCount > 1 && colliderSnake.soldadoCQC == null)
@@ -810,10 +840,11 @@ public class Snake : MonoBehaviour
             }
 
 
+            //Si le mete una patada y no esta ya en el suelo
             if (snakeAnimator.GetCurrentAnimatorStateInfo(1).IsName("Kick") && colliderSnake.soldadoCQC != null)
             {
                 Vector3 pos = transform.position + (Rig.forward * .1f) + (Vector3.down * .1f) - (Rig.right * 0.1f);
-                SetSoldadoInc(colliderSnake.soldadoCQC, colliderSnake.masProximo, pos, Rig.forward, true, 20);
+                SetSoldadoInc(colliderSnake.soldadoCQC, pos, Rig.forward, 1);
             }
         }
 
@@ -842,9 +873,10 @@ public class Snake : MonoBehaviour
                     colliderSnake.soldadoCQC.BajaOxigeno(20);
                     colliderSnake.soldadoCQC.SonidoAgarre();
 
+                    //Lo ahoga si le baja mucho el oxigeno
                     if (!colliderSnake.soldadoCQC.Consciente())
                     {
-                        SetSoldadoInc(colliderSnake.soldadoCQC, colliderSnake.masProximo, colliderSnake.soldadoCQC.transform.position, Rig.forward, false, 100, false);
+                        SetSoldadoInc(colliderSnake.soldadoCQC,colliderSnake.soldadoCQC.transform.position, Rig.forward, 1);
                         CQC = false;
                         tiempoCQC = 0;
                         tiempoDetecCQC = 0;
@@ -853,7 +885,7 @@ public class Snake : MonoBehaviour
 
                 }
 
-                print("decide");
+                //print("decide");
 
                 //colliderSnake.soldadoCQC.para = true;
                 colliderSnake.soldadoCQC.SetPPKT(1);
@@ -874,7 +906,7 @@ public class Snake : MonoBehaviour
                     tiempoCQC = 0;
                     tiempoDetecCQC = 0.1f;
                     CQC = false;
-                    CQCThrow();
+                    CQCThrow(true);
                     entraCQC = false;
                 }
             }
@@ -912,7 +944,45 @@ public class Snake : MonoBehaviour
             if (tiempoCQC > 0f && colliderSnake.soldadoCQC != null && colliderSnake.soldadoCQC.col.activeInHierarchy)
             {
                 arrast = false;
-                colliderSnake.soldadoCQC.AgarreSoldado(this);
+
+                colliderSnake.soldadoCQC.AgarreSoldado(this, colliderSnake.soldadoCQC.counter(), vel == sprVel ? 1 : 0);
+
+                //Si lo va a agarrar haciendole contra ataque al golpe del enemigo
+                if (colliderSnake.soldadoCQC.counter() && !axis)
+                {
+                    //Reproduce la animacion de agarrar el golpe
+                    bool golpe = (colliderSnake.soldadoCQC.Arma() == null) ||
+                        (colliderSnake.soldadoCQC.Arma() != null && colliderSnake.soldadoCQC.Arma().TipoObjeto() < 2);
+
+                    //Si es un golpe con el puño
+                    if (golpe)
+                    {
+                        snakeAnimator.Play("Base Layer.ContraPunch", 0, 0);
+                        this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/CQCCounter1"), .75f);
+                    }
+                    //Si es un golpe con el arma
+                    else
+                    {
+                        snakeAnimator.Play("");
+
+                    }
+                    //PONER SONIDO
+
+                    //Rotamos el rig para que lo mire
+                    Vector3 dif = colliderSnake.soldadoCQC.transform.position - transform.position;dif.y = 0;
+                    Rig.forward = dif;
+                   
+                }
+
+                //Si lo va a agarrar normal
+                else
+                {
+                    snakeAnimator.Play("Base Layer.CQCGrabFront", 0, 0);
+                    int i = Random.Range(1, 4);
+                    this.GetComponent<AudioSource>().PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .35f);
+                }
+
+
             }
 
             //Libera soldado
@@ -953,6 +1023,7 @@ public class Snake : MonoBehaviour
         }
 
 
+        HandleFPSCam(Time.deltaTime);
     }
 
     bool isGrounded()
@@ -1001,35 +1072,6 @@ public class Snake : MonoBehaviour
             sonidoCollider.name += "_";
         }
 
-        if (trueFPS || binoc)
-        {
-            FPSrot.x -= (GetAxis("Mouse Y") + (GetAxis("Cam Y") * Time.deltaTime)) * sensitivity * inversiones[3];
-
-            FPSrot.x = Mathf.Clamp(FPSrot.x, capFPSX.x, capFPSX.y);
-
-            FPSrot.y += (GetAxis("Mouse X") + (GetAxis("Cam X") * Time.deltaTime)) * sensitivity * inversiones[2];
-
-            if (tPared > 0)
-            {
-                cabeza.transform.eulerAngles = FPSrot;
-                Cam.eulerAngles = FPSrot;
-            }
-            else
-            {
-                cabeza.transform.eulerAngles = FPSrot + (180 * Vector3.up);
-                Cam.eulerAngles = FPSrot + (180 * Vector3.up);
-            }
-            Rig.eulerAngles = new Vector3(0, FPSrot.y, 0);
-
-            if (binoc)
-            {
-                Cam.GetComponent<Camera>().fieldOfView += ((GetButton("Disparar") ? 1 : 0) - (GetButton("Apuntar") ? 1 : 0)) * Time.deltaTime * (interfaz.maxZoom - interfaz.fov);
-                Cam.GetComponent<Camera>().fieldOfView = Mathf.Clamp(Cam.GetComponent<Camera>().fieldOfView, interfaz.maxZoom, interfaz.fov);
-                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = Cam.GetComponent<Camera>().fieldOfView;
-            }
-        }
-
-
 
 
     }
@@ -1037,7 +1079,8 @@ public class Snake : MonoBehaviour
     void Movimiento(float deltaTime)
     {
         
-        bool lockMove = ((miraObjetos && indObj != -1) || (miraArmas && indArm != -1)) || binoc || tiempoDetecCQC < 0.1f || Interroga;
+        bool lockMove = ((miraObjetos && indObj != -1) || (miraArmas && indArm != -1)) || binoc || tiempoDetecCQC < 0.1f || Interroga
+            || (CQC && !snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("CQCStand") && !snakeAnimator.GetCurrentAnimatorStateInfo(0).IsName("CQCAgach"));
         Vector3 dir = new Vector3(GetAxis("Horizontal"), 0, GetAxis("Vertical")) * (lockMove ? 0 : 1);
         //Te puedes mover en primera persona
         dir = Vector3.ClampMagnitude(dir, 1);
@@ -1069,7 +1112,7 @@ public class Snake : MonoBehaviour
                 pressAg = false;
                 tiempoPressAg = tiempoCtrlArr;
             }
-            if (!GetButton("Agach") && pressAg && !(agach && !arrast && dir != Vector3.zero))
+            if (!GetButton("Agach") && pressAg && !(agach && !arrast && dir != Vector3.zero && agVel == 0))
             {
                 if (tiempoPressAg > 0 && estadoInicial == 1 && !snakeAnimator.GetBool("Pared"))
                 {
@@ -1130,7 +1173,7 @@ public class Snake : MonoBehaviour
             //else if (snakeAnimator.GetBool("Pared"))
             //RotaRig(false);
 
-            if (agach && !arrast && (pressAg == false || levantaTiron == true))
+            if (agVel == 0 && agach && !arrast && (pressAg == false || levantaTiron == true))
             {
                 pressAg = true; estadoInicial = 1 + (levantaTiron ? 1 : 0);
                 movAg = true;
@@ -1227,7 +1270,7 @@ public class Snake : MonoBehaviour
 
                     //Hacer que los movimientos leves no se procesen ARREGLAR
                     Vector3 movOrt = movement - Vector3.Project(movement, normalOpt);
-                    Debug.DrawRay(transform.position, movOrt, Color.red);
+                    //Debug.DrawRay(transform.position, movOrt, Color.red);
                     movement -= movOrt;
 
                     float escala = arrVel * 0.75f;
@@ -1261,7 +1304,7 @@ public class Snake : MonoBehaviour
                 snakeAnimator.SetBool("Pared", false);
                 //Si no choca porque se ha despegado, no rota
             }
-            Debug.DrawRay(pecho.position, -Rig.forward * .35f);
+            
 
             snakeAnimator.SetFloat("Hor", tPared == 0 ? (Vector3.Dot(movement, Rig.right)) : 0);
         }
@@ -1401,7 +1444,9 @@ public class Snake : MonoBehaviour
     {
         if (!agach && !caja && tPared != 0)
             vel = (dirS.magnitude >= 0.75f && !CQC) ? sprVel : walkVel;
-        else if (((agach && !arrast) || (arrast && GetButton("Apuntar"))) && !caja && tPared != 0)
+        else if (agach && !arrast)
+            vel = agVel;
+        else if (arrast && GetButton("Apuntar") && !caja && tPared != 0)
             vel = 0;
         else
             vel = arrVel;
@@ -1497,6 +1542,7 @@ public class Snake : MonoBehaviour
                 case "CIGS":
                     interfaz.vidaObj.SetActive(true);
                     humoCig.SetActive(true);
+                    humoPos = humoCig.transform.position;
                     break;
                 case "N.V.G.":
                     //Cam.GetComponent<Volume>().enabled = true;
@@ -2228,7 +2274,7 @@ public class Snake : MonoBehaviour
 
     }
 
-    void CQCThrow()
+    void CQCThrow(bool impulso = false)
     {
         Vector3 f = Cam.forward; Vector3 r = Cam.right;
         Vector3 a = new Vector3(f.x, 0, f.z).normalized;
@@ -2249,20 +2295,43 @@ public class Snake : MonoBehaviour
         snakeAnimator.SetFloat("CQCHor", Vector3.Dot(forw, Rig.right));
         snakeAnimator.SetFloat("CQCVer", Vector3.Dot(forw, Rig.forward));
 
-        Vector3 pos = transform.position + (forw * .1f) + (Vector3.down * .1f) - (right * 0.1f);
-        SetSoldadoInc(colliderSnake.soldadoCQC,colliderSnake.masProximo,  pos, forw, true);
+        Vector3 pos = transform.position + (Vector3.down * .1f);
+
+        //Vemos cuanto hay que moverlo al lado para que no choque
+
+        //Solo lo movemos si va directamente en contra de donde estamos mirando
+        float cantMov = -Mathf.Min(0, Vector3.Dot(Rig.forward, forw));
+
+        float fuerza = 2;
+        colliderSnake.soldadoCQC.SpinCQC(0);
+        if (Vector3.Dot(Rig.forward, forw) <= -0.45f)
+        {
+            fuerza = .75f;
+            colliderSnake.soldadoCQC.SpinCQC(1);
+        }
+
+
+        pos += right * cantMov * .1f;
+        if (impulso)
+            pos += forw * .1f;
+
+        if (Mathf.Abs(Vector3.Dot(Rig.forward, forw)) < 0.1f)
+            pos += forw * 0.2f;
+
+        //Debug.Break();
+        //Hacer que la fuerza dependa de la direccion respecto a la que mira y por tanto cambien las animaciones de tirar
+
+
+
+        SetSoldadoInc(colliderSnake.soldadoCQC,  pos, forw, fuerza, -1.25f);
     }
 
 
-    void SetSoldadoInc(Soldier soldado, Collider soldadoCol, Vector3 pos, Vector3 normal, bool tirar, float target = 100, bool cajaAux = true)
+    void SetSoldadoInc(Soldier soldado, Vector3 pos, Vector3 normal, float fuerzaTiro, float vY_ = 0)
     {
-        //soldado.DesactivaVista();
-        if(cajaAux)
-            soldado.Throw(this, tirar, target);
-        else
-            soldado.Throw(null ,tirar, target, this.transform);
-        soldadoCol.name = "InteraccionSoldadoInc";
-        soldado.DatosCQC(normal, soldado.Agachado(), pos, soldado.EstaVivo() || soldado.Consciente());
+        soldado.DesactivaVista();
+        soldado.transform.position = pos;
+        soldado.Throw(this, normal, fuerzaTiro, vY : vY_);
         //Debug.Break();
 
     }
@@ -2275,14 +2344,21 @@ public class Snake : MonoBehaviour
         if(posDisparo != null)
         {
             trailBala.enabled = true;
-            trailBala.positionCount = 2;
+            Vector3 inicio = partRef.transform.position; Vector3 final = posDisparo.Value;
 
-            float facEscala = 1 / transform.localScale.x;
-            Vector3 inicio = facEscala*(partRef.transform.position - transform.position); Vector3 final = facEscala * (posDisparo.Value - transform.position);
+            //Añadimos las nuevas posiciones
+            int cantPos = trailBala.positionCount + 4;
+            Vector3[] posiciones = new Vector3[cantPos];
+            for(int i = 0; i < trailBala.positionCount; i++)
+            {
+                posiciones[i] = trailBala.GetPosition(i);
+            }
+            posiciones[trailBala.positionCount] = inicio; posiciones[trailBala.positionCount + 1] = final;
+            posiciones[trailBala.positionCount+2] = final; posiciones[trailBala.positionCount + 3] = inicio;
 
 
-            trailBala.SetPositions(new Vector3[] { inicio, final });
-            StopCoroutine(TiempoBalas());
+            trailBala.positionCount = cantPos;
+            trailBala.SetPositions(posiciones);
             StartCoroutine(TiempoBalas());
             //Debug.Break();
         }
@@ -2295,11 +2371,14 @@ public class Snake : MonoBehaviour
     }
     public void Libera()
     {
-        if (colliderSnake.soldadoCQC == null)
+        if (colliderSnake.soldadoCQC == null || colliderSnake.soldadoCQC.tirado)
             return;
         colliderSnake.soldadoCQC.LiberaSoldado(this);
+        colliderSnake.soldadoCQC = null;
         entraCQC = false;
+        tiempoCQC = 0;
         CQC = false;
+        snakeAnimator.SetBool("CQC", false);
     }
 
     public Vector3 Direccion()
@@ -2397,7 +2476,19 @@ public class Snake : MonoBehaviour
     {
         yield return StartCoroutine(CuentaTBalas());
         print("set 0");
-        trailBala.positionCount = 0;
+
+        //Quitamos las dos primeras posiciones de la lista
+        int cantPos = trailBala.positionCount - 4;
+        if (cantPos <= 0)
+            trailBala.positionCount = 0;
+        Vector3[] posiciones = new Vector3[cantPos];
+        for(int i = 0; i < trailBala.positionCount - 4; i++)
+        {
+            posiciones[i] = trailBala.GetPosition(i + 4);
+        }
+        trailBala.positionCount = cantPos;
+        trailBala.SetPositions(posiciones);
+        //trailBala.positionCount = 0;
 
     }
 
@@ -2475,10 +2566,13 @@ public class Snake : MonoBehaviour
 
     public void Pausa()
     {
-        pausa = !pausa;
-        Time.timeScale = pausa ? 0 : 1;
-        interfaz.Pausa(pausa);
-        if (!pausa)
+        //pausa = !pausa;
+        //Time.timeScale = pausa ? 0 : 1;
+
+        bool p = FindObjectOfType<GameManager>().Pausa(!pausa, playerID);
+        interfaz.Pausa(p);
+
+        if (!pausa && !informacion)
         {
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -2493,14 +2587,32 @@ public class Snake : MonoBehaviour
     void Informacion()
     {
         informacion = !informacion;
-        interfaz.MenuInformacion(informacion);
-    }
-    public void RecibeInformacion(string info, bool nuevaLinea = true, bool replace = false)
-    {
-        if (replace)
-            interfaz.informTexto.text = info;
+        interfaz.MenuInformacion(informacion); 
+        if (!informacion)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
         else
-            interfaz.informTexto.text += string.Concat(Enumerable.Repeat( nuevaLinea ? "\n" : "", 3)) + info.ToUpper();
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+    public void RecibeInformacion(string info, int linea, bool replace = false)
+    {
+        //print(info);
+        interfaz.Informacion(info,linea, replace);
+
+        if(!replace)
+        {
+            //interfaz.informTexto.text += string.Concat(Enumerable.Repeat(nuevaLinea ? "\n" : "", 3)) + info.ToUpper();
+            sonidoLocal.Stop();
+            sonidoLocal.PlayOneShot(clipCogerObj, .25f);
+            interfaz.textoObjetos.gameObject.SetActive(true);
+            interfaz.textoObjetos.text = info.ToUpper();
+            interfaz.textoTiempo = 2.5f;
+        }
     }
 
     public void SetFrontID(int ind, int id, bool remove)
@@ -2523,44 +2635,35 @@ public class Snake : MonoBehaviour
 
     public string SacaInfo()
     {
-        return interfaz.informTexto.text;
+        return "";
+        //return interfaz.informTexto.text;
     }
-    public void QuitaInfo(int linea)
+    public void QuitaInfo(int linea, bool toda = false)
     {
-
-        //Como la informacion es compartida, no importa si se la saco a uno cualquiera
-        string info = interfaz.informTexto.text;
-
-        string[] infoMod = info.Split("\n");
-
-        //Quitar informacion del objetivo ya completado
-        RecibeInformacion(infoMod[0], false, true);
-        List<string> nuevInfo = new List<string>();
-
-        for(int i= 1; i < infoMod.Length; i++)
+        //Rehacer
+        if (toda)
         {
-            if (infoMod[i] != "")
-                nuevInfo.Add(infoMod[i]);
+            for(int i = 0; i < interfaz.informTextos.Length; i++) 
+                interfaz.informTextos[i].text = "";
         }
-
-        nuevInfo.RemoveAt(linea);
-        for (int i = 0; i < nuevInfo.Count; i++)
+        else
         {
-            print(nuevInfo[i]);
-        }
-        print(linea);
-
-        for (int i = 0; i < nuevInfo.Count; i++)
-        {
-            RecibeInformacion(nuevInfo[i]);
+            interfaz.informTextos[linea].text = "";
         }
     }
+
     private void OnCollisionStay(Collision collision)
     {
         //Si es un soldado, que se esté quietecito
         if (collision.gameObject.name == "ColisionSoldado")
         {
-            collision.transform.parent.parent.GetComponent<Soldier>().SetPPKT(.1f);
+            //Encuentra la velocidad con la que se mueve el soldado
+            Soldier soldado = collision.transform.parent.parent.GetComponent<Soldier>();
+
+            Vector3 direccionColision = (soldado.transform.position - transform.position).normalized;
+
+            if(Vector3.Dot(soldado.Velocity().normalized,direccionColision) < -0.95f)
+                soldado.SetPPKT(.1f);
         }
 
 
@@ -2584,7 +2687,6 @@ public class Snake : MonoBehaviour
         //movement -= Vector3.Project(movement, collision.impulse);
 
 
-        Debug.DrawRay(transform.position, rb.velocity, new Color(1, 0, 1));
     }
 
     public Vector3 ActualPos()
@@ -2608,12 +2710,18 @@ public class Snake : MonoBehaviour
         else if (cantTotal == 3)
         {
             r.size = new Vector2(.5f, .5f);
-            r.position = new Vector2(cantActual > 0 ? .5f : 0, 0);
+            float posX = cantActual > 1 ? .25f : 0;
+            if (cantActual == 1)
+                posX = .5f;
+            float posY = cantActual > 1 ? .5f : 0;
+            r.position = new Vector2(posX, posY);
         }
         else if (cantTotal == 4)
         {
-            r.size = new Vector2(.5f, 1);
-            r.position = new Vector2(cantActual > 0 ? .5f : 0, 0);
+            r.size = new Vector2(.5f, .5f);
+            float posX = cantActual % 2  == 0? 0 : 0.5f;
+            float posY = (float)cantActual /2 > 1 ? 0 : .5f;
+            r.position = new Vector2(posX, posY);
         }
 
         cam_.rect = r;
@@ -2629,4 +2737,62 @@ public class Snake : MonoBehaviour
         sensitivity = value;
     }
 
+    public void IndicaMision(string mision)
+    {
+        sonidoLocal.Stop();
+        sonidoLocal.PlayOneShot(clipCogerObj, .25f);
+        interfaz.textoObjetos.gameObject.SetActive(true);
+        interfaz.textoObjetos.text = mision.ToUpper();
+        interfaz.textoTiempo = 1;
+
+    }
+
+    public void SetCameraRenderData(UniversalRendererData renderer, int index)
+    {
+        Cam.GetComponent<UniversalAdditionalCameraData>().SetRenderer(index);
+        filtroNVG = renderer.rendererFeatures[2];
+        filtroTermico = renderer.rendererFeatures[1];
+        filtroNVG.SetActive(false);
+        filtroTermico.SetActive(false);
+    }
+    private void OnDrawGizmosSelected()
+    {
+        if(rb != null)
+            Debug.DrawRay(transform.position, rb.velocity, new Color(1, 0, 1));
+        Debug.DrawRay(pecho.position, -Rig.forward * .35f);
+    }
+
+
+    void HandleFPSCam(float deltaTime)
+    {
+
+        if (trueFPS || binoc)
+        {
+            FPSrot.x -= (GetAxis("Mouse Y") + (GetAxis("Cam Y") * deltaTime)) * (sensitivity - camFPSAjuste) * inversiones[3];
+
+            FPSrot.x = Mathf.Clamp(FPSrot.x, capFPSX.x, capFPSX.y);
+
+            FPSrot.y += (GetAxis("Mouse X") + (GetAxis("Cam X") * deltaTime)) * (sensitivity - camFPSAjuste) * inversiones[2];
+
+            if (tPared > 0)
+            {
+                cabeza.transform.eulerAngles = FPSrot;
+                Cam.eulerAngles = FPSrot;
+            }
+            else
+            {
+                cabeza.transform.eulerAngles = FPSrot + (180 * Vector3.up);
+                Cam.eulerAngles = FPSrot + (180 * Vector3.up);
+            }
+            Rig.eulerAngles = new Vector3(0, FPSrot.y, 0);
+
+            if (binoc)
+            {
+                Cam.GetComponent<Camera>().fieldOfView += ((GetButton("Disparar") ? 1 : 0) - (GetButton("Apuntar") ? 1 : 0)) * deltaTime * (interfaz.maxZoom - interfaz.fov);
+                Cam.GetComponent<Camera>().fieldOfView = Mathf.Clamp(Cam.GetComponent<Camera>().fieldOfView, interfaz.maxZoom, interfaz.fov);
+                Cam.GetChild(0).GetComponent<Camera>().fieldOfView = Cam.GetComponent<Camera>().fieldOfView;
+            }
+        }
+
+    }
 }

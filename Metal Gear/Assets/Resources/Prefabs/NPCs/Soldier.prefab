@@ -216,7 +216,7 @@ LineRenderer:
     shadowBias: 0.5
     generateLightingData: 0
   m_MaskInteraction: 0
-  m_UseWorldSpace: 0
+  m_UseWorldSpace: 1
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
 --- !u!1 &8370982901927963499
@@ -595,9 +595,7 @@ MonoBehaviour:
   rotacionesY: []
   velocidadAndar: 1.15
   multCorrer: 1.61
-  cosasVistas: []
-  cosasTiempo: []
-  cosasSteps: 
+  pensamientos: []
   col: {fileID: 8370982901927963499}
   interacCol: {fileID: 8370982901995530036}
   vistaCol: {fileID: 8713019734379638876}
@@ -609,6 +607,7 @@ MonoBehaviour:
   para: 0
   oxigTarget: 0
   informacion: []
+  tirado: 0
   armaHolder: {fileID: 8370982902750646316}
   lArmAux: {fileID: 3617351117318928889}
   rArmAux: {fileID: 7751581146141793729}
@@ -617,6 +616,7 @@ MonoBehaviour:
   chest: {fileID: 1647242003870954789}
   cabeza: {fileID: 3686658689990239754}
   trailBala: {fileID: 8370982901851135774}
+  puedeDisparar: 0
   sonidoSoldado: {fileID: 8370982902201325125}
   cqcCaerSonido: {fileID: 8300000, guid: fd06353fa72802b42bd492a462d9d0a5, type: 3}
   cqcCaerGrito: {fileID: 8300000, guid: 7a9860c22b299c84e85301c8a763391c, type: 3}
@@ -625,6 +625,7 @@ MonoBehaviour:
   pasosSonido: {fileID: 8300000, guid: 6346f22f57588984eb17488543021b41, type: 3}
   alertaSonido: {fileID: 8300000, guid: b86bc0a4ff262e94e8d9a73dc493f5e7, type: 3}
   noticeSonido: {fileID: 8300000, guid: d9059e05b8019c0409f4263067180295, type: 3}
+  terminoGenero: 
   hips: {fileID: 7994512553753656398}
   LLeg: {fileID: 6902271538946494720}
   RLeg: {fileID: 711032824685083788}
@@ -633,6 +634,8 @@ MonoBehaviour:
   buf: {fileID: 3620681899469583871}
   lazo1: {fileID: 1201349303059920906}
   lazo2: {fileID: 8374279887844785765}
+  femCuerpo: {fileID: 5280964337358975900, guid: 03bd6bf4c3e66b448b2dfc0ad160be51,
+    type: 3}
   fovRadar: {fileID: 8370982903585079137}
   sonido: {fileID: 6927838042566018911}
 --- !u!195 &8370982902876585347
@@ -849,7 +852,7 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 4436f0015847df6429b27a6a30aff5e6,
         type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
@@ -894,6 +897,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   collidersALaVista: []
   soldado: {fileID: 8370982902876585346}
+  jugadoresAsumidos: []
 --- !u!1001 &8370982902201325100
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2209,7 +2213,7 @@ AudioSource:
     type: 2}
   m_audioClip: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.7
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -2220,7 +2224,7 @@ AudioSource:
   MinDistance: 1
   MaxDistance: 7.7
   Pan2D: 0
-  rolloffMode: 2
+  rolloffMode: 1
   BypassEffects: 0
   BypassListenerEffects: 0
   BypassReverbZones: 0
@@ -2262,7 +2266,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 1
+      value: 0
       inSlope: 0
       outSlope: 0
       tangentMode: 0

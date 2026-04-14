@@ -5,16 +5,187 @@ using UnityEngine.AI;
 using System.Globalization;
 using UnityEditor;
 
+
+//Los datos que puede albergar un pensamiento
+[System.Serializable]
+public class Dato
+{
+    int dato_int;
+    float dato_float;
+    Vector3 dato_Vec;
+    [HideInInspector]public int tipo_dato;
+    public string valor;
+
+    //El dato es un int
+    public Dato(int num)
+    {
+        tipo_dato = 0;
+        dato_int = num;
+        dato_float = -1.0f;
+        dato_Vec = Vector3.zero;
+        valor = num.ToString();
+    }
+
+    //El dato es una float
+    public Dato(float f)
+    {
+        tipo_dato = 1;
+        dato_int = -1;
+        dato_float = f;
+        dato_Vec = Vector3.zero;
+        valor = f.ToString();
+    }
+
+    //El dato es un Vector
+    public Dato(Vector3 v)
+    {
+        tipo_dato = 2;
+        dato_int = -1;
+        dato_float = -1.0f;
+        dato_Vec = v;
+        valor = v.ToString();
+    }
+
+
+    public Vector3 GetVector()
+    {
+        return dato_Vec;
+    }
+    public int GetInt()
+    {
+        return dato_int;
+    }
+    public float GetFloat()
+    {
+        return dato_float;
+    }
+
+    public void SetVector(Vector3 input)
+    {
+        dato_Vec = input;
+    }
+    public void SetFloat(float input)
+    {
+        dato_float = input;
+    }
+    public void SetInt(int input)
+    {
+        dato_int = input;
+    }
+
+}
+
+//Los pensamientos de cada soldado
+//Almacena el tipo de pensamiento, el tiempo de cada paso, el paso en el que esta y los datos asociados
+[System.Serializable]
+public class Pensamiento
+{
+    public static int EXPLOSIVO_CERCA = 0;
+    public static int FALTA_ARMA = 1;
+    public static int JUGADOR = 2;
+    public static int COMP_INC = 3;
+    public static int REHEN = 4;
+    public static int CHECK_ZONA = 5;
+
+    
+    public int tipo;
+    public float tiempo;
+    public int step;
+
+    //Formato
+    //Dato 1 -> sitio
+    //Dato n > 1 -> cosas concretas del pensamiento
+    public Dato[] datos;
+
+    //Constructor estandar
+    public Pensamiento()
+    {
+        tipo = 0;
+        step = 0;
+        tiempo = 0;
+        datos = new Dato[0];
+    }
+
+    //Solo se especifica el tipo
+    public Pensamiento(int tipo_)
+    {
+        
+        tipo = tipo_;
+        step = 0;
+        tiempo = 0;
+        datos = new Dato[0];
+    }
+
+    public Pensamiento(int tipo_, params Dato[] datos_)
+    {
+        tipo = tipo_;
+        tiempo = 0;
+        step = 0;
+
+        //Vamos a suponer que todo lo que le pasamos es del tipo que admiten los datos
+        datos = new Dato[datos_.Length];
+
+        for(int i = 0; i< datos.Length; i++)
+        {
+            
+            //Si el dato es un int, lo metemos como int
+            if (datos_[i].tipo_dato == 0)
+            {
+                datos[i] = new Dato(datos_[i].GetInt());
+            }
+            //Si es un float, lo metemos como float
+            else if (datos_[i].tipo_dato == 1)
+            {
+                datos[i] = new Dato(datos_[i].GetFloat());
+            }
+            //Si es un Vector3, lo metemos como Vector3
+            else if (datos_[i].tipo_dato == 2)
+            {
+                datos[i] = new Dato(datos_[i].GetVector());
+            }
+        }
+    }
+    
+    public void SetTiempo(float t)
+    {
+        //tiempo = t;
+        tiempo = t;
+    }
+    public void SetStep(int s)
+    {
+        step = s;
+    }
+
+    public Dato ultimoDato()
+    {
+        //Debug.Log("ultimo dato");
+        Dato dato;
+
+        if (datos.Length > 0)
+        {
+            dato = datos[datos.Length - 1];
+        }
+        else
+        {
+            //Debug.Log("nada");
+            dato = new Dato(-1);
+        }
+
+        return dato;
+    }
+
+}
+
 public class Soldier : MonoBehaviour
 {
     public int ID = -1;
     [SerializeField] Animator soldierAnimator;
     public Transform Rig;
     [SerializeField] NavMeshAgent agente;
-    [SerializeField] CharacterController controller;
+    [SerializeField]public CharacterController controller;
     List<int> indicesFinal = new List<int>();
 
-    //Movimiento
+    //----------MOVIMIENTO
     public List<Vector3> posiciones;
     public List<float> tiempoEspera;
     public List<float> rotacionesY;
@@ -27,7 +198,6 @@ public class Soldier : MonoBehaviour
     int index;
     float vida = 100;
 
-    float estres = 0;
     float oxigeno = 100;
 
 
@@ -36,15 +206,17 @@ public class Soldier : MonoBehaviour
 
     [Range(0, 3)]
     public float velocidadAndar;
-    [Range(1,3)]
+    [Range(1, 3)]
     public float multCorrer;
 
     bool correr, agachado;
     float vel;
 
-    public List<string> cosasVistas;
-    public List<float> cosasTiempo;
-    public List<int> cosasSteps;
+    //----------PENSAMIENTO
+    public List<Pensamiento> pensamientos;
+    int pensamiento_step = 0;
+    Vector3 destination = Vector3.zero;
+    float tDesiredVelocity = 0;
 
 
     public GameObject col;
@@ -59,24 +231,24 @@ public class Soldier : MonoBehaviour
     Vector3 cqcNormal;
     public bool pillado;
     public bool para;
-    bool KO;
-    Vector3 v;
-    bool vieneDeCQC;
     [HideInInspector]public float oxigTarget;
     public List<string> informacion;
-    bool impulsa = true;
-    bool setPos = true;
     float tiempoInterrog = 0;
     float tiempoPausaPPK = 0;
     bool pegar = false;
     List<GameObject> collidersAPegar = new List<GameObject>();
 
-    //Armas
+    //--------------TIRAR A SOLDADOS
+    Vector3 velocidadTiro;
+    [HideInInspector]public bool tirado = false;
+    bool levantandose = false;
+
+
+    //--------------ARMAS
     public Transform armaHolder;
     List<Arma> armasSoldado;
     List<int> balas; List<int> balasFront;
     Arma armaEnMano;
-    float tiempoArmaCambio = 0;
     float distActual = 0;
     float tiempoCad = 0;
     bool apuntar = false;
@@ -86,26 +258,29 @@ public class Soldier : MonoBehaviour
     [SerializeField] LineRenderer trailBala;
     Vector3 sitioApuntar;
     bool dispAux = false;
+    public bool puedeDisparar = false;
 
-    //Audio
+    //-------------AUDIO
     public AudioSource sonidoSoldado;
     [SerializeField] AudioClip cqcCaerSonido, cqcCaerGrito;
     [SerializeField] AudioClip dolorSonido, ahogueSonido;
     [SerializeField] AudioClip pasosSonido;
     [SerializeField] AudioClip alertaSonido, noticeSonido;
     bool paso = false;
+    [HideInInspector]public string terminoGenero = "";
 
-    // Partes del cuerpo
+    //-----------------PARTES DEL CUERPO
     public Transform hips, LLeg, RLeg;
     float facSangre = 1;
     [SerializeField] SkinnedMeshRenderer cuerpo;
     [SerializeField] MeshRenderer gorro, buf, lazo1, lazo2;
+    [SerializeField] Mesh femCuerpo;
 
-    //Radar
+    //----------RADAR
     [SerializeField] MeshRenderer fovRadar;
     int modoRadar = 0;
 
-    //Sistema de deteccion
+    //---------------SISTEMA DE DETECCION
     bool caution = false;
     [SerializeField] SonidoSoldado sonido;
 
@@ -123,24 +298,26 @@ public class Soldier : MonoBehaviour
 
         armasSoldado.Add(Resources.Load<Arma>(Random.Range(0,101) > 99 ? "Armas/COLT" : "Armas/BERETTA"));
         armasSoldado.Add(Resources.Load<Arma>("Armas/FAMAS"));
-        armasSoldado.Add(Resources.Load<Arma>("Armas/GRENADE"));
+
+        //Quitamos las granadas porque no se implementarlas
+
+        //armasSoldado.Add(Resources.Load<Arma>("Armas/GRENADE"));
 
         // 2 Cargadores por arma con posibilidad de hasta dos mas
 
         for (int i = 0; i < armasSoldado.Count; i++) {
             //Granadas  implementadas lets gooooooo
-
-
             balas.Add(2 * armasSoldado[i].balasArma() + Random.Range(0, 1 + (2* armasSoldado[i].balasArma())));
             balasFront.Add(armasSoldado[i].balasArma()); 
         }
 
-        SeleccionaArma();
+        SeleccionaArma(0);
 
         //controller = this.GetComponent<CharacterController>();
         agente.updateRotation = false;
-        cosasVistas = new List<string>();
 
+        //cosasVistas = new List<string>();
+        pensamientos = new List<Pensamiento>();
 
         while(rotacionesY.Count < posiciones.Count)
         {
@@ -165,19 +342,19 @@ public class Soldier : MonoBehaviour
         if (!agente.enabled && !antesApagado)
             antesApagado = true;
 
+
         //Movimiento Normal
+        //Ponemos el paso de IA, para optimizar
+        ActualizaPensamiento();
 
         CheckRadar();
 
-        if (jugadorAg == null && !KO)
+        if (jugadorAg == null && !levantandose)
         {
+
+            if (EstaPensando())
+                agente.SetDestination(destination);
             apuntar = false;
-            if (tiempoArmaCambio > 0)
-            {
-                tiempoArmaCambio -= Time.deltaTime;
-                if (tiempoArmaCambio < 0)
-                    tiempoArmaCambio = 0;
-            }
             if (tiempoCad > 0)
             {
                 tiempoCad -= Time.deltaTime;
@@ -195,13 +372,12 @@ public class Soldier : MonoBehaviour
                 if (t > 0.45f && t < 0.9f && !paso)
                 {
                     paso = true;
-                    sonidoSoldado.PlayOneShot(pasosSonido, movimiento.magnitude * .15f / (velocidadAndar * multCorrer));
-
+                    ReproduceSonido(pasosSonido, movimiento.magnitude * .15f / (velocidadAndar * multCorrer));
                 }
                 else if (t > 0.9f && paso)
                 {
                     paso = false;
-                    sonidoSoldado.PlayOneShot(pasosSonido, movimiento.magnitude * .05f / (velocidadAndar * multCorrer));
+                    ReproduceSonido(pasosSonido, movimiento.magnitude * .05f / (velocidadAndar * multCorrer));
                 }
 
             }
@@ -218,28 +394,28 @@ public class Soldier : MonoBehaviour
                     tiempoPausaPPK = 0;
             }
             //movimiento = Vector3.zero;
-            if (posiciones.Count > 0 && cosasVistas.Count == 0 && !espera)
+            if (posiciones.Count > 0 && pensamientos.Count == 0 && !espera)
+            //(posiciones.Count > 0 && cosasVistas.Count == 0 && !espera)
             {
                 //if (para)
-                   // para = false;
+                // para = false;
 
                 agachado = false;
                 correr = false;
                 int siguiente = (index + 1) % posiciones.Count;
-                if (agente.destination == null)
-                {
-                    agente.SetDestination(posiciones[siguiente]);
-                }
-                if (agente.remainingDistance == 0)
+                SetDestination(posiciones[siguiente]);
+                if (HaLlegado()) 
                 {
                     index = siguiente;
                     espera = true;
                     tiempoQueda = tiempoEspera[index];
+                    SetDestination(posiciones[siguiente], true);
                     agente.isStopped = true;
 
                 }
 
             }
+
             else if (espera)
             {
                 tiempoQueda -= Time.deltaTime;
@@ -247,729 +423,19 @@ public class Soldier : MonoBehaviour
                 {
                     espera = false;
                     agente.isStopped = false;
-                    agente.SetDestination(posiciones[index]);
+                    int siguiente = (index + 1) % posiciones.Count;
+                    SetDestination(posiciones[siguiente], true);
+                    tiempoQueda = 0;
 
                 }
                 else
                     RotaRig(rotacionesY[index], true);
             }
-            else if (cosasVistas.Count > 0)
+
+            else if (pensamientos.Count > 0)
+            //(cosasVistas.Count > 0)
             {
-                AjustaStepsYTiempo();
-                if(cosasVistas.Count > 1)
-                    ReordenaCosasVistas();
-                //para = true;
-                //Formato de cosas vistas
-
-                //cosa = (string) : [7 caracteres de tipo] + _ + [vector con componentes separadas por ; de donde ha visto eso/ debe ir] (opcional,+_+¿caja?+¿rehen?+¿A donde mira?+ _ +indiceJug)
-
-                correr = true;
-                string cosaPrioritaria = "";
-                //Hay veces que hace un cast invalido (?). He intentado de todo, pero nada
-                try
-                {
-                    cosaPrioritaria = cosasVistas[0];
-                }
-                catch
-                {
-                    return;
-                }
-
-                string[] modulos = cosaPrioritaria.Split("_");
-
-                //los primeros 7 caracteres determinan que tipo de cosa es
-                string tipo = modulos[0];
-                string[] sitio;
-
-                if (agachado && !cosasVistas[0].Contains("verAJug"))
-                    agachado = false;
-
-                //Intenta sacar el sitio de lo que tiene visto, si no nada
-                try
-                {
-                    sitio = modulos[1].Split(";");
-                }
-                catch
-                {
-                    sitio = new string[] { "0", "0", "0" };
-                }
-
-                Vector3 sitioPos = new Vector3(SacaNumString(sitio[0]), SacaNumString(sitio[1]), SacaNumString(sitio[2]));
-
-
-                switch (tipo)
-                {
-                    //Se aleja de los explosivos
-                    case "explCer":
-                        {
-                            if (cosasSteps[0] == 0)
-                            {
-                                agachado = false;
-                                cosasTiempo[0] = 1f;
-                                cosasSteps[0] = 1;
-                            }
-                            cosasTiempo[0] -= Time.deltaTime;
-                            Vector3 direccion = (sitioPos - transform.position).normalized;
-                            Vector3 direccionOpuesta = transform.position - (direccion * 5);
-                            if (Vector3.Distance(transform.position, sitioPos) <= 6)
-                            {
-                                agente.SetDestination(direccionOpuesta);
-                            }
-
-                            Debug.DrawLine(transform.position, direccionOpuesta, Color.white);
-                            if (cosasTiempo[0] < 0)
-                            {
-                                cosasVistas.RemoveAt(0);
-                                cosasSteps.RemoveAt(0);
-                                cosasTiempo.RemoveAt(0);
-                                int siguiente = (index + 1) % posiciones.Count;
-                                agente.SetDestination(posiciones[siguiente]);
-                            }
-                        }
-                        break;
-
-                    //Si no tiene un arma, que se diriga al armería
-                    case "falArma":
-                        {
-                            if (cosasSteps[0] == 0)
-                            {
-                                float d = Mathf.Infinity; int j = -1;
-                                for (int i = 0; i < FindObjectOfType<GameManager>().crates.Count; i++)
-                                {
-                                    if (d > Vector3.SqrMagnitude(FindObjectOfType<GameManager>().crates[i].transform.position - transform.position))
-                                    {
-                                        d = Vector3.SqrMagnitude(FindObjectOfType<GameManager>().crates[i].transform.position - transform.position);
-                                        j = i;
-                                    }
-                                }
-
-                                if (j != -1)
-                                {
-                                    cosasSteps[0] = 1;
-                                    agente.SetDestination(FindObjectOfType<GameManager>().crates[j].transform.position);
-                                }
-                            }
-
-                            else if (cosasSteps[0] == 1 && agente.remainingDistance == 0)
-                            {
-                                if (Vector3.Distance(agente.destination, transform.position) < 1f)
-                                {
-                                    cosasSteps[0] = 2;
-                                    cosasTiempo[0] = 1.5f;
-                                }
-                            }
-                            else if (cosasSteps[0] == 2)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                if (cosasTiempo[0] <= 0)
-                                {
-                                    string armasQueTiene = "";
-                                    for (int i = 0; i < armasSoldado.Count; i++)
-                                    {
-                                        //Granadas  implementadas lets gooooooo
-                                        balas[i] = Mathf.Max(balas[i], (2 * armasSoldado[i].balasArma() + Random.Range(0, 1 + (2 * armasSoldado[i].balasArma()))));
-                                        balasFront[i] = Mathf.Max(balasFront[i], (armasSoldado[i].balasArma()));
-                                        armasQueTiene += armasSoldado[i].nombre;
-                                    }
-                                    if (armasSoldado.Count < 3)
-                                    {
-                                        if (!armasQueTiene.Contains("GRENADE"))
-                                        {
-                                            RecibeArma(Resources.Load<Arma>("Armas/GRENADE"));
-                                        }
-
-                                        if (!armasQueTiene.Contains("FAMAS"))
-                                        {
-                                            RecibeArma(Resources.Load<Arma>("Armas/FAMAS"));
-                                        }
-                                        if (!armasQueTiene.Contains("BERETTA"))
-                                        {
-                                            RecibeArma(Resources.Load<Arma>("Armas/BERETTA"));
-                                        }
-                                    }
-                                    cosasVistas.RemoveAt(0);
-                                    cosasTiempo.RemoveAt(0);
-                                    cosasSteps.RemoveAt(0);
-                                }
-                            }
-                        }
-
-                        break;
-                    //Si ve un compañero inconsciente, que vaya a verlo y a despertarlo
-                    case "compInc":
-                        {
-                            //Se queda 3 segundos mirando el cuerpo
-                            if (cosasSteps[0] == 0 && cosasTiempo[0] > 0)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                if (cosasTiempo[0] < 0)
-                                {
-                                    cosasSteps[0] = 1;
-                                    cosasTiempo[0] = 2;
-                                    Vector3 direccionMirar = -transform.position + sitioPos;
-                                    direccionMirar *= 0.85f;
-                                    direccionMirar += transform.position;
-                                    agente.SetDestination(direccionMirar);
-                                }
-
-                            }
-                            else if (cosasSteps[0] == 0 && cosasTiempo[0] == 0)
-                            {
-                                Vector3 direccionMirar = -transform.position + sitioPos;
-                                direccionMirar = direccionMirar.normalized * 0.01f;
-                                direccionMirar += transform.position;
-                                agente.SetDestination(direccionMirar);
-                                cosasTiempo[0] = 3;
-                                sonidoSoldado.PlayOneShot(Resources.Load<AudioClip>("Audio/Soldiers/WhosThat"));
-                            }
-
-                            else if (cosasSteps[0] == 1 && agente.remainingDistance == 0)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                Debug.DrawLine(transform.position, sitioPos, Color.red);
-                                if (cosasTiempo[0] < 0)
-                                {
-                                    //Tira un rayo para detectar al compañero
-                                    RaycastHit rayoDet;
-                                    LayerMask layersADet = new LayerMask();
-                                    layersADet = (1 << LayerMask.NameToLayer("EscenarioColliders")) | (1 << LayerMask.NameToLayer("Interaccion"));
-
-                                    if (Physics.Raycast(transform.position, (sitioPos - transform.position).normalized, out rayoDet, Mathf.Infinity, layersADet))
-                                    {
-                                        print(rayoDet.collider.name);
-                                        if (rayoDet.collider.gameObject.name == "InteraccionSoldadoInc")
-                                        {
-                                            Soldier soldadoCaido = rayoDet.collider.transform.parent.parent.GetComponent<Soldier>();
-                                            print(soldadoCaido.transform.name);
-                                            if (soldadoCaido.EstaVivo())
-                                            {
-                                                print("levantalo");
-                                                //soldadoCaido.BajaOxigeno(-100);
-                                                sonidoSoldado.PlayOneShot(Resources.Load<AudioClip>("Audio/Soldiers/GetOutOfTheWay"));
-                                                Golpe(3, true);
-                                            }
-                                            else
-                                            {
-                                                print("pasa de el");
-                                                //Le tapa con una manta y eso
-                                                //Poner sonido cremallera
-                                                soldadoCaido.Manta();
-                                            }
-                                            cosasSteps[0] = 2;
-                                            cosasTiempo[0] = 2;
-
-                                        }
-                                        else
-                                        {
-                                            Vector3 nuevoVector = Vector3.Cross(Rig.forward, transform.up);
-                                            agente.SetDestination(transform.position + (.5f * nuevoVector));
-                                            cosasTiempo[0] = 2;
-
-                                        }
-                                    }
-                                    else
-                                    {
-                                        //print("hola");
-                                        Vector3 nuevoVector = Vector3.Cross(Rig.forward, transform.up);
-                                        agente.SetDestination(transform.position + (.5f * nuevoVector));
-                                        cosasTiempo[0] = 2;
-                                    }
-
-
-                                }
-                            }
-                            // Step = 1 espera un momento antes de despertarlo
-
-                            //Step = 2 si no esta muerto le mete una patada y se queda un rato esperando -> sale del bucle
-                            else if (cosasSteps[0] == 2)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                if (cosasTiempo[0] < 0)
-                                {
-                                    cosasVistas.RemoveAt(0);
-                                    cosasTiempo.RemoveAt(0);
-                                    cosasSteps.RemoveAt(0);
-                                }
-                            }
-                        }
-                        break;
-                    //Si ve al jugador, lo persigue o alerta al resto(dependiendo de si tiene arma o no)
-                    case "verAJug":
-                        {
-                            cosasTiempo[0] -= Time.deltaTime;
-                            //Si ve al jugador, que le tome un segundo reaccionar
-                            if (cosasSteps[0] == -2 && cosasTiempo[0] <= 2.65f)
-                            {
-                                cosasSteps[0] = -1;
-                                FindObjectOfType<GameManager>().AddAlerta(this);
-                                sonidoSoldado.PlayOneShot(noticeSonido);
-                            }
-                            else if (cosasSteps[0] == -2)
-                            {
-                                tiempoPausaPPK = Time.deltaTime;
-                                break;
-
-                            }
-
-                            //Pone el sonido para que los otros lo detecten
-                            if (cosasSteps[0] == -1)
-                            {
-                                sonido.gameObject.SetActive(true);
-                                //Radio amplio, las alertas penalizan
-                                sonido.GetComponent<SphereCollider>().radius = 9;
-                                foreach (Snake jug in FindObjectsOfType<Snake>())
-                                {
-                                    if (jug.playerID == int.Parse(modulos[modulos.Length - 1]))
-                                    {
-                                        sonido.jug = jug;
-                                        break;
-                                    }
-                                }
-                                cosasSteps[0] = 0;
-                            }
-                            sonido.time = cosasTiempo[0];
-
-                            //Estimacion de si cambia las distancias, que cambie su comportamiento
-                            {
-                                float[] distNiveles = { 5.5f, 2.5f, .3f };
-
-                                float estimada = Vector3.SqrMagnitude(sitioPos - transform.position);
-                                for (int i = 0; i < distNiveles.Length; i++)
-                                {
-                                    float p = Mathf.Pow(distNiveles[i], 2);
-                                    if (Mathf.Sign(distActual - p) != Mathf.Sign(estimada - p))
-                                    {
-                                        cosasSteps[0] = 0;
-                                        print("cambio steps");
-                                        if (i != 0)
-                                            agachado = false;
-                                        break;
-                                    }
-
-                                }
-                                distActual = Vector3.SqrMagnitude(sitioPos - transform.position);
-
-
-                            }
-                            agente.SetDestination(sitioPos);
-                            //print(sitioPos.y - transform.position.y);
-                            sitioApuntar = sitioPos;
-                            //Si pierde al jugador, que transforme esta instruccion a checkear la zona donde lo perdió
-                            if (cosasTiempo[0] < 0)
-                            {
-                                string cambioCosa = "chkZone_";
-                                for (int i = 1; i < modulos.Length; i++)
-                                {
-                                    cambioCosa += modulos[i];
-                                    if (i < modulos.Length - 1)
-                                        cambioCosa += "_";
-                                }
-                                cosasVistas[0] = cambioCosa;
-                                cosasTiempo[0] = 0;
-                                FindObjectOfType<GameManager>().AddAlerta(this, true);
-                                FindObjectOfType<GameManager>().AddAlerta(this, false, true);
-                                Agachate(false);
-                            }
-
-                            if (armaEnMano == null && armasSoldado.Count > 0) { armaEnMano = armasSoldado[0]; SetArma(); }
-
-                            //Si lleva un soldado agarrado y está mirando con el soldado al enemigo, no dispara para no matar al rehen
-                            
-                            bool rehenSnake = modulos[3] == "t";
-                            if (rehenSnake)
-                            {
-                                rehenSnake = Vector3.Dot(Rig.forward, SacaVecDeString(modulos[4])) < 0.1f;
-                            }
-                            print(rehenSnake);
-                            //Dependiendo de la distancia que haga según que cosas
-                            apuntar = true;
-                            if (!rehenSnake && armaEnMano != null && agente.remainingDistance > 5.5f && (sitioPos.y - transform.position.y) >= -0.15f)
-                            {
-                                // Si no tiene granada en inv la tira; si no se agacha para disparar mejor
-                                if (armasSoldado.Count == 0)
-                                    break;
-
-                                if (cosasSteps[0] == 0)
-                                {
-                                    for (int i = 0; i < armasSoldado.Count; i++)
-                                    {
-                                        if ("GRANADA" != armaEnMano.nombre && armasSoldado[i].nombre == "GRANADA")
-                                        {
-                                            armaEnMano = armasSoldado[i];
-                                            tiempoArmaCambio = .5f;
-                                            break;
-                                        }
-
-                                        else if (!"GRANADASTUN".Contains(armaEnMano.nombre) && armasSoldado[i].nombre == "STUN")
-                                        {
-                                            armaEnMano = armasSoldado[i];
-                                            tiempoArmaCambio = 0.5f;
-                                            continue;
-                                        }
-
-                                        else if (armaEnMano != armasSoldado[i])
-                                        {
-                                            armaEnMano = armasSoldado[i];
-                                            tiempoArmaCambio = 0.5f;
-                                            continue;
-                                        }
-
-
-                                    }
-                                    SetArma();
-                                    cosasSteps[0] = 1;
-                                    if (!"GRANADASTUN".Contains(armaEnMano.nombre))
-                                    {
-                                        tiempoArmaCambio = 0.65f;
-                                    }
-                                }
-                                else if (cosasSteps[0] == 1 && tiempoArmaCambio == 0)
-                                {
-                                    //Si tiene una granada, la tira
-                                    if ("GRENADESTUN".Contains(armaEnMano.nombre))
-                                    {
-                                        //Dispara la granada
-                                        print("Granada");
-                                        Disparar();
-                                        cosasSteps[0] = 3;
-                                        tiempoArmaCambio = 30;
-                                    }
-                                    //Si tiene un arma, se agacha y te dispara
-                                    else
-                                    {
-                                        agachado = true;
-                                        if (soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("Agachado") && tiempoArmaCambio == 0)
-                                        {
-                                            Disparar();
-                                            cosasSteps[0] = 2;
-                                            tiempoPausaPPK = 0.5f;
-                                            tiempoArmaCambio = 1;
-                                        }
-                                    }
-
-                                }
-                                else if (cosasSteps[0] == 2)
-                                {
-                                    if (armaEnMano != null)
-                                    {
-                                        int indArm = armasSoldado.IndexOf(armaEnMano);
-                                        if (balasFront[indArm] == 0)
-                                            Recargar();
-                                    }
-
-                                    if (tiempoArmaCambio == 0)
-                                    {
-                                        agachado = false;
-                                        cosasSteps[0] = 1;
-                                        if (!"GRANADASTUN".Contains(armaEnMano.nombre))
-                                        {
-                                            tiempoArmaCambio = 0.65f;
-                                        }
-                                    }
-                                }
-                                else if (cosasSteps[0] == 3)
-                                {
-                                    //Busca el arma que no sea una granada y la usa para disparar
-                                    int ind = -1;
-                                    for (int i = 0; i < armasSoldado.Count; i++)
-                                    {
-                                        if (armasSoldado[i].TipoObjeto() == 0)
-                                            continue;
-                                        ind = i;
-                                    }
-                                    if (ind != -1)
-                                    {
-                                        armaEnMano = armasSoldado[ind];
-
-                                    }
-                                    else
-                                    {
-                                        armaEnMano = null;
-                                    }
-                                    SetArma();
-                                    cosasSteps[0] = 4;
-                                }
-                                else if (cosasSteps[0] == 4)
-                                {
-                                    bool disparar = (armaEnMano != null && (int)tiempoArmaCambio % 2 == 0);
-                                    if (disparar)
-                                    {
-                                        Disparar();
-                                        cosasSteps[0] = 5;
-
-                                    }
-                                    if (tiempoArmaCambio == 0)
-                                        cosasSteps[0] = 1;
-                                }
-                                else if (cosasSteps[0] == 5 && (int)tiempoArmaCambio % 2 == 1)
-                                {
-                                    cosasSteps[0] = 4;
-                                }
-                            }
-                            else if (!rehenSnake && armaEnMano != null && (agente.remainingDistance < 5.5f && agente.remainingDistance > 2.5f || (sitioPos.y - transform.position.y) < -0.15f))
-                            {
-                                if (armaEnMano.TipoObjeto() == 0)
-                                    cosasSteps[0] = 0;
-                                //Selecciona arma de alto alcance y dispara por rondas pero se para al disparar
-                                if (cosasSteps[0] == 0)
-                                {
-                                    int ind = -1;
-                                    for (int i = 0; i < armasSoldado.Count; i++)
-                                    {
-                                        if (armasSoldado[i].TipoObjeto() == 0)
-                                            continue;
-                                        ind = i;
-                                    }
-                                    if (ind != -1)
-                                    {
-                                        armaEnMano = armasSoldado[ind];
-                                        tiempoPausaPPK = .5f;
-
-                                    }
-                                    else
-                                    {
-                                        armaEnMano = null;
-                                    }
-                                    SetArma();
-                                    cosasSteps[0] = 1;
-
-                                }
-                                else if (cosasSteps[0] == 1 && armaEnMano != null)
-                                {
-                                    int indArm = armasSoldado.IndexOf(armaEnMano);
-                                    if (tiempoCad == 0 && balasFront[indArm] > 0)
-                                        Disparar();
-                                    if (tiempoPausaPPK <= 0 || balasFront[indArm] == 0)
-                                    {
-                                        cosasSteps[0] = 2;
-                                        tiempoArmaCambio = .75f;
-                                    }
-                                }
-                                else if (cosasSteps[0] == 1 && armaEnMano == null && tiempoPausaPPK > 0)
-                                    tiempoPausaPPK = 0;
-                                else if (cosasSteps[0] == 2)
-                                {
-                                    if (tiempoArmaCambio == 0)
-                                    {
-                                        cosasSteps[0] = 1;
-                                        if (armaEnMano != null)
-                                        {
-                                            tiempoPausaPPK = .35f;
-                                            int indArm = armasSoldado.IndexOf(armaEnMano);
-                                            if (balasFront[indArm] == 0)
-                                                Recargar();
-                                        }
-                                    }
-                                }
-                            }
-                            else if (!rehenSnake && armaEnMano != null && agente.remainingDistance < 2.5f && agente.remainingDistance > .5f && (sitioPos.y - transform.position.y) >= -0.15f)
-                            {
-                                if (armaEnMano.TipoObjeto() == 0)
-                                    cosasSteps[0] = 0;
-                                // Dispara a quemarropa con el arma que mas quite
-
-                                //Selecciona el arma con mas daño
-                                if (cosasSteps[0] == 0)
-                                {
-                                    float daño = 0; int ind = -1;
-                                    for (int i = 0; i < armasSoldado.Count; i++)
-                                    {
-                                        if (armasSoldado[i].TipoObjeto() == 0)
-                                            continue;
-
-
-                                        if (armasSoldado[i].pistolaFusil().daño > daño)
-                                        {
-                                            ind = i;
-                                            daño = armasSoldado[i].pistolaFusil().daño;
-                                        }
-
-                                    }
-                                    if (ind != -1)
-                                    {
-                                        armaEnMano = armasSoldado[ind];
-                                        print(daño);
-                                        tiempoArmaCambio = 0.35f;
-                                    }
-                                    else
-                                    {
-                                        armaEnMano = null;
-                                    }
-                                    SetArma();
-                                    cosasSteps[0] = 1;
-                                }
-
-                                //Cuando tenga el arma lista, que dispare POM
-                                if (cosasSteps[0] == 1 && armaEnMano != null)
-                                {
-                                    int indArm = armasSoldado.IndexOf(armaEnMano);
-                                    if (tiempoCad == 0 && balasFront[indArm] > 0)
-                                        Disparar();
-                                    if (tiempoPausaPPK <= 0 || balasFront[indArm] == 0)
-                                    {
-                                        cosasSteps[0] = 2;
-                                        tiempoArmaCambio = .75f;
-                                    }
-
-                                }
-                                //Se espera un rato a recargar
-                                if (cosasSteps[0] == 2 && tiempoArmaCambio == 0)
-                                {
-                                    Recargar();
-                                    cosasSteps[0] = 1;
-                                    //Si no le quedan balas vuelve a buscar a ver si tiene un arma mejor
-                                    try
-                                    {
-                                        int indArm = armasSoldado.IndexOf(armaEnMano);
-                                        if (balas[indArm] == 0)
-                                            cosasSteps[0] = 0;
-                                    }
-                                    catch
-                                    {
-
-                                    }
-                                }
-
-
-                                //if (!soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("Disparar"))
-                                //    Disparar();
-                            }
-                            else if (agente.remainingDistance < .5f && (sitioPos.y - transform.position.y) >= -0.15f)
-                            {
-                                //CQC
-
-                                /*
-
-                                step 0 => tiene que reaccionar (ventana para que el jugador le pueda pegar)
-                                step > 0 => pum te pega
-
-                                 */
-                                apuntar = false;
-                                tiempoPausaPPK = agente.remainingDistance < 0.3f ? .1f : 0;
-                                if (cosasSteps[0] == 0)
-                                {
-                                    tiempoArmaCambio = 0.75f;
-                                    cosasSteps[0] = 1;
-                                }
-                                //Si le están pegando [ state.isName("Dolor") ] pues no puede pegar
-                                else if (cosasSteps[0] > 0 && tiempoArmaCambio == 0 && !soldierAnimator.GetCurrentAnimatorStateInfo(2).IsName("Dolor"))
-                                {
-                                    Golpe(cosasSteps[0]);
-                                    tiempoArmaCambio = 0.4f;
-                                    cosasSteps[0] += 1;
-                                    if (cosasSteps[0] > 3)
-                                        cosasSteps[0] = 1;
-                                }
-
-
-                            }
-                        }
-
-                        break;
-
-                    //Si le toman como rehén
-                    case "rehen":
-                        {
-                            if (cosasSteps[0] == 0)
-                            {
-                                cabeza.GetComponent<RecibeSonidos>().disabled = true;
-                                cosasTiempo[0] = 10;
-                                cosasSteps[0] = 1;
-                                agente.SetDestination(transform.position + sitioPos);
-                                interacCol.name = "InteraccionSoldadoRehen";
-                            }
-                            else if (cosasSteps[0] == 1)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                if (cosasTiempo[0] <= 0)
-                                {
-                                    cabeza.GetComponent<RecibeSonidos>().disabled = false;
-                                    cosasVistas.RemoveAt(0);
-                                    cosasSteps.RemoveAt(0);
-                                    cosasTiempo.RemoveAt(0);
-                                    interacCol.name = "InteraccionSoldado";
-                                }
-                            }
-                        }
-                        break;
-
-                    //Checkea zona | paso par : va hacia un sitio aleatorio | paso impar : mira hacia un sitio aleatorio 10 segundos. En 10 pasos termina
-                    case "chkZone":
-                        {
-                            if (cosasSteps[0] % 2 == 0 && cosasSteps[0] < 10)
-                            {
-                                //se salta este paso
-                                agente.SetDestination(sitioPos);
-                                if (agente.remainingDistance <= agente.radius)
-                                {
-                                    cosasSteps[0] += 1;
-                                    cosasTiempo[0] = 10;
-
-                                    float newX = Random.Range(-1.0f, 1.0f);
-                                    float newZ = Random.Range(-1.0f, 1.0f);
-
-                                    agente.SetDestination(transform.position + (new Vector3(newX, 0, newZ).normalized * 0.1f));
-                                    //para = true;
-                                }
-                            }
-                            else if (cosasSteps[0] % 2 == 1 && cosasSteps[0] < 10)
-                            {
-                                cosasTiempo[0] -= Time.deltaTime;
-                                if (cosasTiempo[0] <= 0)
-                                {
-                                    //para = false;
-                                    cosasSteps[0] += 1;
-                                    cosasTiempo[0] = 0;
-
-                                    float newAngle = Random.Range(-3.139f, 3.14f);
-                                    float newRadius = Random.Range(0.1f, 2.5f);
-
-                                    Vector3 newPos = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle)) * newRadius;
-
-                                    sitioPos += newPos;
-                                    string nuevoSitio = VectorAString(sitioPos);
-                                    string nuevaCosa = "";
-                                    for (int i = 0; i < modulos.Length; i++)
-                                    {
-                                        if (i == 1)
-                                        {
-                                            nuevaCosa += nuevoSitio + "_";
-                                            continue;
-                                        }
-                                        if (i == modulos.Length - 1)
-                                        {
-                                            nuevaCosa += modulos[i];
-                                            continue;
-                                        }
-                                        else
-                                        {
-                                            nuevaCosa += modulos[i] + "_";
-                                        }
-                                    }
-                                    cosasVistas[0] = nuevaCosa;
-
-                                    agente.SetDestination(sitioPos);
-
-                                }
-                            }
-
-                            else
-                            {
-                                if ("0123".Contains(modulos[modulos.Length - 1]))
-                                {
-                                    FindObjectOfType<GameManager>().AddAlerta(this, true, true);
-                                }
-                                cosasVistas.RemoveAt(0);
-                                cosasSteps.RemoveAt(0);
-                                cosasTiempo.RemoveAt(0);
-
-
-                            }
-
-                            Debug.DrawRay(sitioPos, Vector3.up, Color.black);
-                        }
-                        break;
-                }
+                CompletaPensamiento();
             }
 
             if (!agachado)
@@ -978,99 +444,102 @@ public class Soldier : MonoBehaviour
                 vel = 0;
 
 
-            if((balas.Contains(0) || armasSoldado.Count < 3) && !cosasVistas.Contains("falArma") && EstaVivo() && Consciente())
+            if ((balas.Contains(0) || armasSoldado.Count < 2) && !ContienePensamiento(Pensamiento.FALTA_ARMA) && EstaVivo() && Consciente())
             {
-                cosasVistas.Add("falArma");
-                cosasSteps.Add(0);
-                cosasTiempo.Add(0);
+                //cosasVistas.Add("falArma");
+                float d = Mathf.Infinity; int j = -1;
+                for (int i = 0; i < FindObjectOfType<GameManager>().crates.Count; i++)
+                {
+                    if (d > Vector3.SqrMagnitude(FindObjectOfType<GameManager>().crates[i].transform.position - transform.position))
+                    {
+                        d = Vector3.SqrMagnitude(FindObjectOfType<GameManager>().crates[i].transform.position - transform.position);
+                        j = i;
+                    }
+                }
+
+                if (j != -1)
+                {
+
+                    Dato pos_crate = new Dato(FindObjectOfType<GameManager>().crates[j].transform.position);
+                    pensamientos.Add(new Pensamiento(Pensamiento.FALTA_ARMA, pos_crate));
+                    //pensamientos[0].step = 1;//cosasSteps[0] = 1;
+                }
             }
 
             bool pararMoverse = para || (tiempoPausaPPK != 0);
 
             agente.speed = vel;
+            //agente.isStopped = false;
+            if (agente.desiredVelocity != Vector3.zero)
+            {
+                //print("velocidad" + agente.desiredVelocity);
+                //Debug.Break();
+                RotaRig();
+            }
             agente.isStopped = pararMoverse;
 
             agente.updatePosition = agente.enabled;
 
-            if (agente.desiredVelocity != Vector3.zero)
-            {
-                RotaRig();
-            }
         }
         //agarre cqc en lateUpdate
-        else if(controller.enabled && !KO)
+        else if (controller.enabled && tirado && !levantandose)
         {
-            Rig.forward = cqcNormal;
-            v.y -= Time.deltaTime * 9.8f;
-            controller.Move(v * Time.deltaTime);
-            if (controller.isGrounded && !agachado)
+            velocidadTiro.y -= Time.deltaTime * 9.8f;
+            controller.Move(velocidadTiro * Time.deltaTime);
+            //Cuando toca el suelo, cae y se queda inconsciente
+            if (controller.isGrounded)
             {
+                BajaOxigeno(100);
                 SonidoRadio(4);
-                sonidoSoldado.PlayOneShot(cqcCaerSonido, .15f);
-                //controller.enabled = false;
+                ReproduceSonido(cqcCaerSonido, .15f);
+                tirado = false;
                 controller.enabled = false;
-                transform.position += .55f * Vector3.up;
-                controller.center = .55f * Vector3.down;
+                transform.position += Vector3.up * agente.height * 0.175f;
                 controller.enabled = true;
-                KO = true;
-                BajaOxigeno(oxigTarget);
-                SetPPKT(0);
-
-                vistaCol.GetComponent<VistaSoldado>().collidersALaVista = new List<Collider>();
-                vistaCol.SetActive(false);
-                cosasVistas = new List<string>();
-                cosasSteps = new List<int>();
-                cosasTiempo = new List<float>();
-                FindObjectOfType<GameManager>().AddAlerta(this, true, true);
+                //Debug.Break();
+                soldierAnimator.Play("Base Layer.GenomeLandT", 0, 0);
+                DropAll(Vector3.zero, true);
                 FindObjectOfType<GameManager>().AddAlerta(this, true);
-                if (EstaVivo())
-                    QuitaVida(Mathf.Abs(controller.velocity.y), transform, false);
-
+                vistaCol.GetComponent<VistaSoldado>().QuitaAsumidos();
             }
-
         }
-
-        if (KO)
+        else if (controller.enabled && !tirado && !levantandose)
         {
-
-            controller.Move(Vector3.down * Time.deltaTime);
             if (oxigeno == 100 && EstaVivo())
             {
-                KO = false;
-                //controller.enabled = false;
-                v = Vector3.down;
+                //KO = false;
+                controller.enabled = false;
+                //jugadorAg = null;
+                LiberaSoldado(jugadorAg.GetComponent<Snake>(), false, false);
+                agente.enabled = false;
+
+                //v = Vector3.down;
                 agachado = true;
-                vieneDeCQC = true;
+                //vieneDeCQC = true;
                 vistaCol.SetActive(true);
-                impulsa = true;
+                //vistaCol.GetComponent<VistaSoldado>().QuitaAsumidos();
+                soldierAnimator.Play("Base Layer.GenomeWakeUp", 0, 0);
+                levantandose = true;
+                //agente.enabled = true;
+                velocidadTiro = Vector3.zero;
+                //Debug.Break();
             }
+
         }
-        if(!KO && agachado && soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("Agachado") && vieneDeCQC)
+        else if (levantandose && soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("Agachado"))
         {
-            Rig.localPosition = Vector3.down * 0.832f;
-            agente.enabled = true;
-            controller.center = Vector3.zero;
-            controller.enabled = false;
-            agachado = false;
-            vieneDeCQC = false;
-            string chk = "chkZone_" + VectorAString(transform.position) + "_" + jugadorAg.GetComponent<Snake>().playerID.ToString();
-            jugadorAg = null;
+            print("vuelve");
             interacCol.name = "InteraccionSoldado";
-            SeleccionaArma();
-            vistaCol.SetActive(true);
-
-            cosasVistas.Add(chk);
-            cosasSteps.Add(0);
-            cosasTiempo.Add(0);
-            FindObjectOfType<GameManager>().AddAlerta(this, false, true);
-            //Debug.Break();
+            levantandose = false;
+            agente.enabled = true;
         }
+        //El oxigeno sube mas lento cuando esta KO
+        if (vida > 0)
+            oxigeno = Mathf.Clamp(oxigeno + (Time.deltaTime *(controller.enabled && !tirado ? .75f : 75)), 0, 100);
 
-        if(vida > 0)
-            oxigeno = Mathf.Clamp(oxigeno + (Time.deltaTime * (KO ? .75f : 75)), 0, 100);
 
-
-        if (sonido.jug != null && (cosasVistas.Count == 0 || !cosasVistas[0].Contains("verAJug")))
+        if (sonido.jug != null && (pensamientos.Count == 0 || pensamientos[0].tipo != Pensamiento.JUGADOR))
+            //(cosasVistas.Count == 0 || !cosasVistas[0].Contains("verAJug")))
         {
             sonido.jug = null;
             sonido.gameObject.SetActive(false);
@@ -1083,15 +552,16 @@ public class Soldier : MonoBehaviour
 
 
         soldierAnimator.SetBool("Agachado", agachado);
-        soldierAnimator.SetBool("Tirar", controller.enabled && impulsa);
+        soldierAnimator.SetBool("Tirar", controller.enabled && tirado);
         soldierAnimator.SetBool("Aterriza", controller.isGrounded);
-        soldierAnimator.SetBool("KO", KO);
-        soldierAnimator.SetBool("PassOut", controller.enabled && !impulsa);
+        //soldierAnimator.SetBool("KO", KO);
+        //soldierAnimator.SetBool("PassOut", controller.enabled && !tirado);
         soldierAnimator.SetBool("Apuntar", apuntar);
-        soldierAnimator.SetBool("Rehen", cosasVistas.Contains("rehen"));
+        soldierAnimator.SetBool("Rehen", ContienePensamiento(Pensamiento.REHEN));
 
         //print(KO);
     }
+
     private void LateUpdate()
     {
 
@@ -1111,16 +581,25 @@ public class Soldier : MonoBehaviour
             antesApagado = false;
 
             int siguiente = (index + 1) % posiciones.Count;
-            agente.SetDestination(posiciones[siguiente]);
+            SetDestination(posiciones[siguiente]);
 
         }
 
 
         //Pongo aqui lo de que lo agarren de cqc por que tiene menos latencia con la posicion
-        if (jugadorAg != null && !controller.enabled && !KO && !vieneDeCQC)
+        if (jugadorAg != null && !controller.enabled && !tirado)// && !KO && !vieneDeCQC)
         {
+            //Si no se ha quitado el arma y le han agarrado, que se la quite
+            if (armaEnMano != null && Rig.forward != cqcNormal) { armaEnMano = null; SetArma(); }
+
             transform.position = cqcPos;
             Rig.forward = cqcNormal;
+            Rig.localPosition = new Vector3(0, -.832f, 0);
+
+
+            Debug.DrawRay(transform.position, Rig.forward * 0.25f, Color.red);
+            Debug.DrawRay(transform.position + (Rig.forward) * 0.25f, Vector3.up, Color.black);
+
 
             if (tiempoInterrog > 0)
             {
@@ -1131,11 +610,9 @@ public class Soldier : MonoBehaviour
                 }
             }
             //Por si de alguna forma el soldado no lo apaga el solo
-            if(cosasVistas.Count > 0)
+            if(pensamientos.Count > 0)
             {
-                cosasVistas = new List<string>();
-                cosasTiempo = new List<float>();
-                cosasSteps = new List<int>();
+                pensamientos = new List<Pensamiento>();
                 vistaCol.SetActive(false);
                 FindObjectOfType<GameManager>().AddAlerta(this, true);
                 FindObjectOfType<GameManager>().AddAlerta(this, true, true);
@@ -1149,11 +626,12 @@ public class Soldier : MonoBehaviour
         //Apuntar
         if (apuntar && armaEnMano != null && armaEnMano.TipoObjeto() >= 1 && jugadorAg == null)
         {
-            if (cosasVistas.Count == 0 || !cosasVistas[0].Contains("verAJug"))
+            /*
+            if (pensamientos.Count == 0 || pensamientos[0].tipo != Pensamiento.JUGADOR)
             {
                 apuntar = false;
             }
-
+            */
             //Asi apunta con cierto angulo
 
             //Vector3 angulos = Quaternion.AngleAxis(angBrazos, Rig.right).eulerAngles;
@@ -1164,8 +642,7 @@ public class Soldier : MonoBehaviour
             dist.y = 0;
 
             float angChest = Vector3.SignedAngle(new Vector3(chest.forward.x, 0, chest.forward.z), dist, Vector3.up);
-            //print(angChest);
-            Vector3 anguloChest = Quaternion.AngleAxis(angChest, Vector3.up).eulerAngles;
+
             chest.Rotate(0, angChest, 0, Space.World);
             //chest.Rotate( angChest, 0,0, Space.World);
             //chest.Rotate(0, 0,angChest, Space.World);
@@ -1176,6 +653,9 @@ public class Soldier : MonoBehaviour
             Vector3 angulos = Quaternion.AngleAxis(angBrazos, chest.right).eulerAngles;
             lArmAux.Rotate(angulos, Space.World); 
             rArmAux.Rotate(angulos, Space.World);
+
+            //Ponemos que no esta a tiro por si acaso
+            apuntar = false;
 
         }
         else if (apuntar)
@@ -1197,6 +677,10 @@ public class Soldier : MonoBehaviour
             dispAux = false;
         }
 
+        //ponemos que pegue si ahora va a pegar
+        if (soldierAnimator.GetNextAnimatorStateInfo(1).IsName("GenomePunch1") ||
+            soldierAnimator.GetNextAnimatorStateInfo(1).IsName("GenomeCulatazo"))
+            pegar = true;
 
         //si está pegando, calcula los golpes
         if (pegar && collidersAPegar.Count > 0)
@@ -1206,7 +690,7 @@ public class Soldier : MonoBehaviour
             {
 
                 int i = Random.Range(1, 3);
-                sonidoSoldado.PlayOneShot(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .5f);
+                ReproduceSonido(Resources.Load<AudioClip>("Audio/Snake/Golpe" + i.ToString()), .5f);
 
                 if (persona.GetComponent<Snake>())
                 {
@@ -1225,7 +709,6 @@ public class Soldier : MonoBehaviour
                 }
 
             }
-            soldierAnimator.SetInteger("PunchCount", 0);
             collidersAPegar = new List<GameObject>();
             pegar = false;
         }
@@ -1233,21 +716,40 @@ public class Soldier : MonoBehaviour
         else if (pegar && collidersAPegar.Count == 0 && soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("SinArma"))
         {
             soldierAnimator.SetInteger("PunchCount", 0);
-            print("mierdon de golpe");
+            //print("mierdon de golpe");
             pegar = false;
         }
 
+
+        if(tiempoPausaPPK == 0 && soldierAnimator.GetInteger("PunchCount") > 0)
+        {
+            soldierAnimator.SetInteger("PunchCount", 0);
+        }
+
+        if (tDesiredVelocity > 0)
+            tDesiredVelocity -= Time.deltaTime;
     }
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.cyan;
         foreach (Vector3 pos in posiciones)
             Gizmos.DrawLine(pos, pos+ Vector3.up);
+
+        if (agente.enabled)
+        {
+            Debug.DrawRay(agente.destination, Vector3.up, Color.green);
+
+            Debug.DrawRay(transform.position, agente.desiredVelocity, Color.blue);
+
+            Debug.DrawLine(transform.position, agente.destination, Color.red);
+        }
     }
 
     private void FixedUpdate()
     {
+        //print(pensamiento_step);
+
         if (sonido.gameObject.activeInHierarchy && sonido.name.Contains("_") && sonido.jug == null)
         {
             sonido.gameObject.name = sonido.gameObject.name.Substring(0, sonido.gameObject.name.Length - 1);
@@ -1263,7 +765,7 @@ public class Soldier : MonoBehaviour
 
     }
 
-    public void Vestirse(string hash)
+    public void Vestirse(string hash, bool mujer = false)
     {
         string inicialAColor(string inp)
         {
@@ -1340,20 +842,30 @@ public class Soldier : MonoBehaviour
             lazo2.materials = materials;
         }
 
-
+        //Ponemos los audios para el caso de que el soldado sea mujer
+        if (mujer)
+        {
+            //Falta cambiar el modelo
+            cuerpo.sharedMesh = femCuerpo;
+            terminoGenero = "W";
+            cqcCaerGrito = Resources.Load<AudioClip>("Audio/Soldiers/CQCThrowScreamW");
+            dolorSonido = Resources.Load<AudioClip>("Audio/Soldiers/SoldadoDolorW");
+            ahogueSonido = Resources.Load<AudioClip>("Audio/Soldiers/CQCAhogarW");
+            noticeSonido = Resources.Load<AudioClip>("Audio/Soldiers/HesHereW");
+        }
 
 
     }
 
     public void SonidoAlerta()
     {
-        sonidoSoldado.PlayOneShot(alertaSonido);
+        ReproduceSonido(alertaSonido);
     }
     void RotaRig(float yR = 0, bool conF = false)
     {
         float tiempoRot = 1;
         Vector2 mov = new Vector2(movimiento.x, movimiento.z);
-        float newAngle = conF ? yR : Mathf.Atan2(mov.x, mov.y) * Mathf.Rad2Deg;
+        float newAngle = conF ? yR :Vector2.SignedAngle(mov, Vector2.up);
 
         float angle = Mathf.MoveTowardsAngle(Rig.eulerAngles.y, newAngle, tiempoRot * 1000 * Time.deltaTime);
         Rig.eulerAngles = new Vector3(0, angle, 0);
@@ -1361,28 +873,83 @@ public class Soldier : MonoBehaviour
 
     void Golpe(int numero, bool override_ = false)
     {
-        print("no quiero hacer el void");
+        print("se espera golpe : " + numero);
+        //print("no quiero hacer el void");
         pegar = true;
         //Si no lleva un arma a dos manos, puñetazos y patada normal
         if(override_ || armaEnMano == null || (armaEnMano != null && armaEnMano.TipoObjeto() < 2))
         {
             string nombreEstado = "ArmasLayer.GenomePunch" + numero.ToString();
+
+            tiempoPausaPPK = .2f;
+
+            if (numero == 1)
+            {
+                nombreEstado = "ArmasLayer.GenomePrepPunch";
+                //print("inicial");
+                tiempoPausaPPK = .8f;
+                pegar = false;
+            }
+
             soldierAnimator.SetInteger("PunchCount", numero);
             soldierAnimator.Play(nombreEstado, 1, 0);
         }
         //Si no, culatazo al canto POM
         else
         {
-            soldierAnimator.Play("ArmasLayer.GenomeCulatazo", 1, 0);
+            soldierAnimator.Play("ArmasLayer.GenomePrepCulatazo", 1, 0);
+            tiempoPausaPPK = .8f;
+            pegar = false;
         }
-        tiempoPausaPPK = 0.2f;
         //if (numero == 3)
            // tiempoPausaPPK = 3;
     }
 
+    void AddGolpe()
+    {
+        //Metodo para hacer que el soldado golpee
+
+        bool enEstadoGolpe = soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePunch1") ||
+            soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePunch2") || soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePunch3") ||
+            soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePrepPunch");
+
+        bool enEstadoCulatazo = soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomeCulatazo") || 
+            soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePrepCulatazo");
+
+        //Si esta dando un culatazo ya, no añade nada
+        if (enEstadoCulatazo)
+            return;
+
+        if (!enEstadoCulatazo && armaEnMano != null && armaEnMano.TipoObjeto() >= 2 && tiempoPausaPPK == 0)
+        {
+            Golpe(0);
+            return;
+        }
+
+        int cantDeGolpes = soldierAnimator.GetInteger("PunchCount");
+        cantDeGolpes = cantDeGolpes + 1;
+        if (cantDeGolpes > 3)
+            cantDeGolpes -= 3;
+        //print("cantidad de golpes " + cantDeGolpes);
+        if((enEstadoGolpe && tiempoPausaPPK <= 0.05f) || !enEstadoGolpe)
+        {
+            Golpe(cantDeGolpes);
+
+            //if (cantDeGolpes == 3)
+                //Debug.Break();
+        }
+
+
+    }
 
     void ReordenaCosasVistas()
     {
+
+        //Si es tick de "pensar", reordena. Si no, vuelve
+        if (pensamiento_step != 0)
+            return;
+
+
         /* PRIORIDADES EN COSAS ( n >>> n+1)
          *
          * 1) Rehén
@@ -1409,19 +976,19 @@ public class Soldier : MonoBehaviour
         List<int> explInd = new List<int>();
 
 
-        for(int i = 0; i < cosasVistas.Count; i++)
+        for(int i = 0; i < pensamientos.Count; i++)
         {
-            if (cosasVistas[i].Contains("explCer"))
+            if (pensamientos[i].tipo == Pensamiento.EXPLOSIVO_CERCA)
                 explInd.Add(i);
-            else if (cosasVistas[i].Contains("verAJug"))
+            else if (pensamientos[i].tipo == Pensamiento.JUGADOR)
                 jugInd.Add(i);
-            else if (cosasVistas[i].Contains("falArma"))
+            else if (pensamientos[i].tipo == Pensamiento.FALTA_ARMA)
                 faltaInd.Add(i);
-            else if (cosasVistas[i].Contains("compInc"))
+            else if (pensamientos[i].tipo == Pensamiento.COMP_INC)
                 compInd.Add(i);
-            else if (cosasVistas[i].Contains("rehen"))
+            else if (pensamientos[i].tipo == Pensamiento.REHEN)
                 rehenInd.Add(i);
-            else if (cosasVistas[i].Contains("chkZone"))
+            else if (pensamientos[i].tipo == Pensamiento.CHECK_ZONA)
                 zoneInd.Add(i);
         }
 
@@ -1439,92 +1006,43 @@ public class Soldier : MonoBehaviour
                 listaDeTipos[j] = new List<int>();
                 continue;
             }
+
             List<int> tipo = listaDeTipos[j];
             List<float> distL = new List<float>();
             int[] sortedTipo = new int[tipo.Count];
+
             for(int i = 0; i < tipo.Count; i++)
             {
-                string[] modulos = cosasVistas[tipo[i]].Split("_");
-
-                string[] sitio;
-                try
-                {
-                    sitio = modulos[1].Split(";");
-                }
-                catch
-                {
-                    sitio = new string[] { "0", "0", "0" };
-                }
-
-                Vector3 sitioPos = new Vector3(SacaNumString(sitio[0]), SacaNumString(sitio[1]), SacaNumString(sitio[2]));
+                Vector3 sitioPos = pensamientos[tipo[i]].datos[0].GetVector();
                 float dist = Vector3.SqrMagnitude(sitioPos - transform.position);
                 distL.Add(dist);
             }
+
             distL.Sort();
+
             for(int i = 0; i < tipo.Count; i++)
             {
-                string[] modulos = cosasVistas[tipo[i]].Split("_");
-
-                string[] sitio;
-                try
-                {
-                    sitio = modulos[1].Split(";");
-                }
-                catch
-                {
-                    sitio = new string[] { "0", "0", "0" };
-                }
-
-
-                Vector3 sitioPos = new Vector3(SacaNumString(sitio[0]), SacaNumString(sitio[1]), SacaNumString(sitio[2]));
+                Vector3 sitioPos = pensamientos[tipo[i]].datos[0].GetVector();
                 float dist = Vector3.SqrMagnitude(sitioPos - transform.position);
                 int pos = distL.IndexOf(dist);
                 sortedTipo[pos] = tipo[i];
             }
+
             listaDeTipos[j] = new List<int>();
             listaDeTipos[j].AddRange(sortedTipo);
         }
+
         //Hacemos una lista con los índices ordenados
         indicesFinal = new List<int>();
         for (int i = 0; i < 5; i++) { indicesFinal.AddRange(listaDeTipos[i]); }
 
         //Mapeamos todo a su indice ordenado
-        List<string> nuevasCosas = new List<string>();
-        List<int> nuevosSteps = new List<int>();
-        List<float> nuevoTiempo = new List<float>();
+        List<Pensamiento> nuevosPensam = new List<Pensamiento>();
         for (int i = 0; i < indicesFinal.Count; i++)
         {
-            nuevasCosas.Add(cosasVistas[indicesFinal[i]]);
-            nuevosSteps.Add(cosasSteps[indicesFinal[i]]);
-            nuevoTiempo.Add(cosasTiempo[indicesFinal[i]]);
+            nuevosPensam.Add(pensamientos[indicesFinal[i]]);
         }
-        cosasVistas = nuevasCosas;
-        cosasTiempo = nuevoTiempo;
-        cosasSteps = nuevosSteps;
-    }
-
-    void AjustaStepsYTiempo()
-    {
-
-        while (cosasSteps.Count < cosasVistas.Count)
-        {
-            cosasSteps.Add(0);
-        }
-        if (cosasSteps.Count > cosasVistas.Count)
-        {
-            cosasSteps.RemoveRange(cosasVistas.Count, cosasSteps.Count - cosasVistas.Count);
-        }
-
-        while (cosasTiempo.Count < cosasVistas.Count)
-        {
-            cosasTiempo.Add(0);
-        }
-        if (cosasTiempo.Count > cosasVistas.Count)
-        {
-            cosasTiempo.RemoveRange(cosasVistas.Count, cosasTiempo.Count - cosasVistas.Count);
-        }
-
-
+        pensamientos = nuevosPensam;
     }
 
     public float SacaNumString(string input)
@@ -1547,21 +1065,51 @@ public class Soldier : MonoBehaviour
 
     }
 
-    public void AgarreSoldado(Snake jugador)
+    public void AgarreSoldado(Snake jugador, bool contraAt = false, float cantCorrer = 0)
     {
         jugadorAg = jugador.transform;
         agente.enabled = false;
         col.SetActive(false);
         pillado = true;
         //DropArma(armaEnMano);
-        DropAll(Rig.forward, true);
-        armaEnMano = null;
-        SetArma();
+        //Balance para que no sea tan descarado lo de las armas
+        //DropAll(Rig.forward, true);
+
+        //Si es un contra-ataque
+        if (contraAt)
+        {
+            Vector3 jugPos = jugadorAg.position;
+            Vector3 direccionAMirar = -jugador.Rig.forward;
+            direccionAMirar.y = 0; direccionAMirar = direccionAMirar.normalized;
+            Rig.forward = direccionAMirar;
+            transform.position = jugPos - (direccionAMirar * (0.25f + (cantCorrer * 0.15f)));// + (Vector3.down * 0.1f);
+            Debug.DrawRay(transform.position, direccionAMirar * 0.25f, Color.red);
+            Debug.DrawRay(jugPos, Vector3.up, Color.black);
+
+            //Vemos que animacion de contra-ataque hay que reproducir
+            bool golpe = armaEnMano == null || (armaEnMano != null && armaEnMano.TipoObjeto() < 2);
+
+            if (golpe)
+                soldierAnimator.Play("Base Layer.GenomePunchFail", 0, 0);
+            //Debug.Break();
+        }
+
+        //Si no, reproducimos la animacion de agarrar
+        else
+        {
+            Vector3 direccionAMirar = -jugadorAg.position + transform.position;
+            float dotRigs = Vector3.Dot(Rig.forward, direccionAMirar);
+
+            //Reproducimos la animacion de recibir el golpe dependiendo de donde mire y tal
+        }
+
+
+        //Esto lo ponemos para cuando lo pille
+        //armaEnMano = null;
+        //SetArma();
 
         //Borra todo lo que ha visto y desactiva el collider de visión. También se quita de alertas y/o búsquedas
-        cosasSteps = new List<int>();
-        cosasTiempo = new List<float>();
-        cosasVistas = new List<string>();
+        pensamientos = new List<Pensamiento>();
 
         vistaCol.SetActive(false);
 
@@ -1569,8 +1117,10 @@ public class Soldier : MonoBehaviour
         FindObjectOfType<GameManager>().AddAlerta(this, true);
         FindObjectOfType<GameManager>().AddAlerta(this, true, true);
 
+
     }
-    public void LiberaSoldado(Snake jugador)
+
+    public void LiberaSoldado(Snake jugador, bool moverse = true, bool alerta = true)
     {
         print("entro");
         jugadorAg = null;
@@ -1581,7 +1131,9 @@ public class Soldier : MonoBehaviour
             cqcNormal *= -1;
         }
 
-        transform.position += cqcNormal * dist;
+        if(moverse)
+            transform.position += cqcNormal * dist;
+
         agente.enabled = true;
         col.SetActive(true);
         agachado = false;
@@ -1590,11 +1142,11 @@ public class Soldier : MonoBehaviour
         //vistaCol.GetComponent<VistaSoldado>().CheckZone(cqcPos);
 
         //No hay caja porque no puedes pillar con cqc a nadie vestido de caja
-        vistaCol.GetComponent<VistaSoldado>().Alerta(cqcPos, false, Vector3.zero, false, false, jugador.playerID);
+        if(jugador != null && !controller.enabled && alerta)
+            vistaCol.GetComponent<VistaSoldado>().Alerta(jugador.transform, false, Vector3.zero, false, false, jugador.playerID);
 
         SeleccionaArma();
     }
-
 
     void SeleccionaArma(int ind = 0)
     {
@@ -1604,13 +1156,29 @@ public class Soldier : MonoBehaviour
         armaEnMano = armasSoldado[ind];
         SetArma();
     }
+
     public void DatosCQC(Vector3 normal, bool agach, Vector3 pos, bool posB = true, float vel = 0)
     {
         agachado = agach;
-        cqcNormal = normal;
-        cqcPos = pos;
+        //Hacer que mire en la normal solo si esta en held
+        //Si no, la normal es rig forward
+        if (soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("GenomeHeldStand") ||
+            soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("GenomeHeldAgach"))
+        {
+            cqcNormal = normal;
+            cqcPos = pos;
+            //  Debug.Break();
+        }
+        else
+        {
+            cqcNormal = Rig.forward;
+            cqcPos = transform.position;
+        }
+
+
         soldierAnimator.SetFloat("Velocity", vel);
         pillado = true;
+        /*
         if (controller.enabled)
         {
             pillado = false;
@@ -1624,77 +1192,122 @@ public class Soldier : MonoBehaviour
 
             if (EstaVivo())
             {
-                sonidoSoldado.PlayOneShot(cqcCaerGrito, .15f);
+                ReproduceSonido(cqcCaerGrito, .15f);
             }
 
             if (jugadorAg != null)
                 jugadorAg.GetComponent<Snake>().EliminaSoldado();
-        }
+        }*/
     }
 
-    public bool Rehen(Vector3 posicionJug, bool ag)
+    public bool Rehen(Vector3 posicionJug, bool ag, bool fuerza = false)
     {
-        if (!cosasVistas.Contains("rehen") && jugadorAg == null)
+        if (!ContienePensamiento(Pensamiento.REHEN) && jugadorAg == null)//(!cosasVistas.Contains("rehen") && jugadorAg == null)
         {
             //Hay que ver si el jugador no está a la vista
+            if (!fuerza)
+            {
+                Vector3 direccionMirada = Rig.forward;
+                Vector3 direccionJug = posicionJug - transform.position;
+                if (Vector3.Dot(direccionJug.normalized, direccionMirada) > 0.35f && Mathf.Abs(direccionJug.y) < controller.height / 3)
+                    return false;
+            }
+            //cosasVistas.Add("rehen");
+            Dato datoPos = new Dato(Vector3.zero);
+            pensamientos.Add(new Pensamiento(Pensamiento.REHEN, datoPos));
 
-            Vector3 direccionMirada = Rig.forward;
-            Vector3 direccionJug = posicionJug - transform.position;
-            if (Vector3.Dot(direccionJug.normalized, direccionMirada) > 0.35f && Mathf.Abs(direccionJug.y) < controller.height / 3)
-                return false;
-
-            cosasVistas.Add("rehen");
             armaEnMano = null;
             SetArma();
             agachado = ag;
+            FindObjectOfType<GameManager>().AddAlerta(this, true);
             return !(soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("RehenStand") || soldierAnimator.GetCurrentAnimatorStateInfo(0).IsName("RehenAg"));
         }
         else if(jugadorAg == null)
         {
 
             agachado = ag;
-            int indexRehen = cosasVistas.IndexOf("rehen");
-            if (cosasSteps.Count <= indexRehen)
+            int indexRehen = IndexOfPensamiento(Pensamiento.REHEN);//cosasVistas.IndexOf("rehen");
+            if (indexRehen < 0)
                 return false;
-            cosasSteps[indexRehen] = 0;
+            pensamientos[indexRehen].step = 0;//cosasSteps[indexRehen] = 0;
         }
         return false;
     }
-    public void Throw(Snake jugador, bool tirar, float target, Transform aux = null)
+
+    public void Throw(Snake jugador, Vector3 direccion, float fuerza, bool mira = true, float vY = 0)
     {
-        if (pillado)
-        {
-            Snake elQueTePilla = jugadorAg.GetComponent<Snake>();
-            elQueTePilla.Libera();
-        }
-        impulsa = tirar;
+        //Si ya esta tirandose o en el suelo no se tira otra vez
+        if (controller.enabled)
+            return;
 
-        int signo = -1;
-        if(jugador != null)
+        {
+            /*
+            if (pillado)
+            {
+                Snake elQueTePilla = jugadorAg.GetComponent<Snake>();
+                elQueTePilla.Libera();
+            }
+            impulsa = tirar;
+
+            int signo = -1;
+            if(jugador != null)
+                jugadorAg = jugador.transform;
+            else if(aux != null)
+            {
+                signo = 1;
+                jugadorAg = aux;
+            }
+
+            //para = true;
+            SetPPKT(1);
+            agente.enabled = false;
+            col.SetActive(true);
+            controller.enabled = true;
+            oxigTarget = target;
+            //DropArma(armaEnMano, signo * Rig.forward, true);
+            DropAll(signo * Rig.forward, true);
+            armaEnMano = null;
+            SetArma();
+            SonidoRadio(4.5f);
+            if(FindObjectOfType<GameManager>().haIncrementado())
+            {
+                FindObjectOfType<GameManager>().cambiaAlertas(-1);
+                FindObjectOfType<GameManager>().AddAlerta(this, true);
+            }
+            */
+        }
+
+        //Ponemos a un jugador como referencia para que no entre en el metodo de movimiento normal
+        if (jugador != null)
             jugadorAg = jugador.transform;
-        else if(aux != null)
-        {
-            signo = 1;
-            jugadorAg = aux;
-        }
+        else
+            jugadorAg = FindObjectOfType<Snake>().transform;
 
-        //para = true;
-        SetPPKT(1);
-        agente.enabled = false;
-        col.SetActive(true);
+        //Le decimos que se ponga como inconsciente
+        interacCol.name = "InteraccionSoldadoInc";
+
+        //Activamos al controller y desactivamos el movimiento del agente
         controller.enabled = true;
-        oxigTarget = target;
-        //DropArma(armaEnMano, signo * Rig.forward, true);
-        DropAll(signo * Rig.forward, true);
+        agente.enabled = false;
+
+        //Ponemos la velocidad en la que se tiene que mover
+        velocidadTiro = (direccion * fuerza) + ((1 + vY) * Vector3.up);
+
+        //Le avisamos de que está siendo tirado, para no confundirlo con que le estan agarrando
+        tirado = true;
+
+        //Le decimos que mire en la direccion en la que le tiran si tiene que mirar
+        if (mira)
+            Rig.forward = direccion;
+
+        //Hacemos que no tenga el arma en la mano
         armaEnMano = null;
         SetArma();
-        SonidoRadio(4.5f);
-        if(FindObjectOfType<GameManager>().haIncrementado())
-        {
-            FindObjectOfType<GameManager>().cambiaAlertas(-1);
-            FindObjectOfType<GameManager>().AddAlerta(this, true);
-        }
 
+        //Hacemos que no vea
+        DesactivaVista();
+
+        //Debug.Break();
     }
 
     public void BajaOxigeno(float valor)
@@ -1718,46 +1331,47 @@ public class Soldier : MonoBehaviour
         //Animacion Daño
         if (EstaVivo())
         {
-            if(sonido)
-                sonidoSoldado.PlayOneShot(dolorSonido);
-
-            soldierAnimator.Play("DolorLayer.Dolor", 2, 0);
+            Dolor(sonido);
         }
 
         //Al morir quitar CQC
-        else 
+        else
         {
             if (jugadorAg != null && !controller.enabled)
             {
-                ThrowDirection(cqcNormal * .1f, jugadorAg.GetComponent<Snake>());
+                Snake snake = jugadorAg.GetComponent<Snake>();
+                controller.enabled = true;
                 jugadorAg.GetComponent<Snake>().Libera();
-                //jugadorAg = null;
-                cosasVistas = new List<string>();
+                controller.enabled = false;
+                Throw(snake, cqcNormal, .1f);
+
+                pensamientos = new List<Pensamiento>();//cosasVistas = new List<string>();
+
+
                 DesactivaVista();
             }
 
             if (cantidad >= 100 && sonido)
             {
-                sonidoSoldado.PlayOneShot(Resources.Load<AudioClip>("Audio/Armas/Headshot"), 0.25f);
+                ReproduceSonido(Resources.Load<AudioClip>("Audio/Armas/Headshot"), 0.15f);
             }
-
+            
             FindObjectOfType<GameManager>().AddAlerta(this, true, true);
             FindObjectOfType<GameManager>().AddAlerta(this, true);
             FindObjectOfType<GameManager>().MataSoldado(gameObject, tirador);
         }
 
 
+    }
 
-
-        }
     public bool Consciente()
     {
-        return oxigeno > 0 && !KO;
+        return oxigeno > 0;//&& !KO;
     }
 
     public void SonidoAgarre()
     {
-        sonidoSoldado.PlayOneShot(ahogueSonido);
+        ReproduceSonido(ahogueSonido);
         SonidoRadio(1.5f);
     }
 
@@ -1770,7 +1384,6 @@ public class Soldier : MonoBehaviour
     {
         return agachado;
     }
-
 
     public void SetArma()
     {
@@ -1794,6 +1407,7 @@ public class Soldier : MonoBehaviour
     {
         tiempoInterrog = 1;
     }
+
     void Interroga()
     {
         if (informacion.Count > 0 && FindObjectOfType<GameManager>().RecibeInformacion(informacion[0]))
@@ -1803,7 +1417,7 @@ public class Soldier : MonoBehaviour
 
 
             int i = Random.Range(1, 4);
-            sonidoSoldado.PlayOneShot(Resources.Load<AudioClip>("Audio/Soldiers/Interroga" + i.ToString()));
+            ReproduceSonido(Resources.Load<AudioClip>("Audio/Soldiers/Interroga" + i.ToString() + terminoGenero));
 
             informacion.RemoveAt(0);
 
@@ -1815,21 +1429,13 @@ public class Soldier : MonoBehaviour
                 informacion.RemoveAt(0);
 
 
-            sonidoSoldado.PlayOneShot(ahogueSonido);
+            ReproduceSonido(ahogueSonido);
         }
     }
 
     public float Vida()
     {
         return vida;
-    }
-    string VectorAString(Vector3 input, string separador = ";")
-    {
-
-        return input.x.ToString(CultureInfo.InvariantCulture.NumberFormat) + separador +
-            input.y.ToString(CultureInfo.InvariantCulture.NumberFormat) + separador +
-            input.z.ToString(CultureInfo.InvariantCulture.NumberFormat);
-
     }
 
     public bool RecibeArma(Arma arma, int balas_ = 0)
@@ -1858,6 +1464,7 @@ public class Soldier : MonoBehaviour
             return true;
         }
     }
+
     public bool RecibeBalas(Arma arma, int balas_ = 0)
     {
         if (armasSoldado.Contains(arma))
@@ -1871,19 +1478,20 @@ public class Soldier : MonoBehaviour
         {
             CustomThrow(other.gameObject);
         }
-        else if(cosasVistas.Count > 0 && other.name == "InteraccionSoldado" && cosasVistas[0] == "rehen" && other != interacCol)
+        else if(pensamientos.Count > 0 && other.name == "InteraccionSoldado" && 
+            pensamientos[0].tipo == Pensamiento.REHEN && other != interacCol)
         {
             cabeza.GetComponent<RecibeSonidos>().disabled = false;
-            cosasVistas.RemoveAt(0);
-            cosasTiempo.RemoveAt(0);
-            cosasSteps.RemoveAt(0);
+            pensamientos.RemoveAt(0);
             interacCol.name = "InteraccionSoldado";
         }
     }
+
     public void TriggerExit(Collider other)
     {
 
     }
+
     public void TriggerStay(Collider other)
     {
         if(other.name.Contains("InteraccionSoldado"))
@@ -1916,38 +1524,23 @@ public class Soldier : MonoBehaviour
     void CustomThrow(GameObject other)
     {
         //Chequea si lo están tirando contra el y si a el lo pueden mover
-        if (controller.enabled || KO)
+        if (controller.enabled)
             return;
         else
         {
             Soldier soldadoImpulsado = other.transform.parent.parent.GetComponent<Soldier>();
 
-            if (!soldadoImpulsado.controller.enabled || soldadoImpulsado.KO) //Si no lo están tirando o ya ha caído al suelo, no te impulsa
+            if (!soldadoImpulsado.controller.enabled || (soldadoImpulsado.controller.enabled && !soldadoImpulsado.tirado)) //Si no lo están tirando o ya ha caído al suelo, no te impulsa
                 return;
 
-            Throw(soldadoImpulsado.jugadorAg.GetComponent<Snake>(), soldadoImpulsado.impulsa, soldadoImpulsado.oxigTarget);
+            Throw(soldadoImpulsado.jugadorAg.GetComponent<Snake>(), soldadoImpulsado.velocidadTiro.normalized, soldadoImpulsado.velocidadTiro.magnitude);
+
+            //Throw(soldadoImpulsado.jugadorAg.GetComponent<Snake>(), soldadoImpulsado.impulsa, soldadoImpulsado.oxigTarget);
 
 
-            interacCol.name = "InteraccionSoldadoInc";
+            //interacCol.name = "InteraccionSoldadoInc";
 
-            DatosCQC(soldadoImpulsado.cqcNormal, agachado, transform.position, EstaVivo() || Consciente());
-        }
-
-    } 
-
-    public void ThrowDirection(Vector3 dir, Snake jug)
-    {
-        if (controller.enabled || KO)
-            return;
-        else
-        {
-
-            Throw(null, true, 100, jug.transform);
-
-
-            interacCol.name = "InteraccionSoldadoInc";
-            Vector3 pos = transform.position + (dir * .1f) + (Vector3.down * .1f);
-            DatosCQC(dir, false, pos, true);
+            //DatosCQC(soldadoImpulsado.cqcNormal, agachado, transform.position, EstaVivo() || Consciente());
         }
     }
 
@@ -1967,7 +1560,8 @@ public class Soldier : MonoBehaviour
             fovRadar.materials[0].DisableKeyword("_MODO_NORMAL");
             fovRadar.materials[0].DisableKeyword("_MODO_ALERT");
         }
-        else if (modoRadar != 1 && cosasVistas.Count > 0 && !cosasVistas[0].Contains("verAJug"))
+
+        else if (modoRadar != 1 && pensamientos.Count > 0 && pensamientos[0].tipo != Pensamiento.JUGADOR)
         {
             modoRadar = 1;
             fovRadar.materials[0].EnableKeyword("_MODO_CAUTION");
@@ -1975,7 +1569,8 @@ public class Soldier : MonoBehaviour
             fovRadar.materials[0].DisableKeyword("_MODO_ALERT");
             fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
-        else if(modoRadar != 2 && cosasVistas.Count > 0 && cosasVistas[0].Contains("verAJug"))
+
+        else if (modoRadar != 2 && pensamientos.Count > 0 && pensamientos[0].tipo == Pensamiento.JUGADOR)
         {
             modoRadar = 2;
             fovRadar.materials[0].EnableKeyword("_MODO_ALERT");
@@ -1983,7 +1578,8 @@ public class Soldier : MonoBehaviour
             fovRadar.materials[0].DisableKeyword("_MODO_CAUTION");
             fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
-        else if(modoRadar != 0 && cosasVistas.Count == 0 && EstaVivo() && Consciente())
+
+        else if(modoRadar != 0 && pensamientos.Count == 0 && EstaVivo() && Consciente())
         {
             modoRadar = 0;
             fovRadar.materials[0].EnableKeyword("_MODO_NORMAL");
@@ -1992,10 +1588,12 @@ public class Soldier : MonoBehaviour
             fovRadar.materials[0].DisableKeyword("_MODO_MUERTO");
         }
     }
+
     public bool Caution()
     {
         return caution;
     }
+
     public void ActivaCaution()
     {
         caution = true;
@@ -2006,11 +1604,6 @@ public class Soldier : MonoBehaviour
     {
         caution = false;
         vistaCol.transform.localScale = new Vector3(.055f, .055f, .055f);
-    }
-
-    void Disparar()
-    {
-        dispAux = true;
     }
 
     void DispararMetodo()
@@ -2025,7 +1618,7 @@ public class Soldier : MonoBehaviour
                 tiempoCad = 1/armaEnMano.Cadencia();
 
                 //Reproduce sonido de disparo
-                sonidoSoldado.PlayOneShot(armaEnMano.sonido(), 0.5f);
+                ReproduceSonido(armaEnMano.sonido(), 0.5f);
 
                 //Quita balas
                 int indArma = armasSoldado.IndexOf(armaEnMano);
@@ -2045,15 +1638,21 @@ public class Soldier : MonoBehaviour
         Vector3? posDisparo = armaEnMano.Disparar(transform.position, direccionDisparar, Vector3.up, transform, false);
         if(posDisparo != null)
         {
-            Vector3 armaInicio = armaHolder.position;
+            
+            Vector3 inicio = armaHolder.position; Vector3 final = posDisparo.Value;
 
-            float factorEscala = 1 / transform.localScale.x;
-            Vector3 inicio = (armaInicio - transform.position) * factorEscala; Vector3 final = (posDisparo.Value - transform.position)*factorEscala;
+            //Añadimos las nuevas posiciones
+            int cantPos = trailBala.positionCount + 2;
+            Vector3[] posiciones = new Vector3[cantPos];
+            for (int i = 0; i < trailBala.positionCount; i++)
+            {
+                posiciones[i] = trailBala.GetPosition(i);
+            }
+            posiciones[trailBala.positionCount] = inicio; posiciones[trailBala.positionCount + 1] = final;
 
 
-            trailBala.positionCount = 2;
-            trailBala.SetPositions(new Vector3[] { inicio, final });
-            StopCoroutine(TiempoBalas());
+            trailBala.positionCount = cantPos;
+            trailBala.SetPositions(posiciones);
             StartCoroutine(TiempoBalas());
             //Debug.Break();
         }
@@ -2095,7 +1694,7 @@ public class Soldier : MonoBehaviour
         SetArma();
     }
 
-    void DropAll(Vector3 direccionTiro = new Vector3(), bool customDir = false)
+    void DropAll(Vector3 direccionTiro, bool customDir = false)
     {
         if (armasSoldado.Count == 0)
             return;
@@ -2128,29 +1727,51 @@ public class Soldier : MonoBehaviour
     public void BuscaJug(Snake jug)
     {
         int j = -1;
-        for(int i = 0; i< cosasVistas.Count; i++)
+        for(int i = 0; i< pensamientos.Count; i++)
         {
-            string[] modulos = cosasVistas[i].Split("_");
-            if (modulos[0] == "chkZone" && modulos[modulos.Length-1] == jug.playerID.ToString()) { j = i; break; }
-            else if(modulos[0] == "verAJug" && modulos[modulos.Length - 1] == jug.playerID.ToString()) { return; }
+            //string[] modulos = cosasVistas[i].Split("_");
+            if (pensamientos[i].tipo == Pensamiento.CHECK_ZONA)
+            { j = i; break; }
+            else if (pensamientos[i].tipo == Pensamiento.JUGADOR &&
+                pensamientos[i].datos[pensamientos[i].datos.Length - 1].GetInt() == jug.playerID)
+            { return; }
 
         }
-        if( j > -1)
-        {
 
-            string cosa = "chkZone_" + VectorAString(jug.transform.position) + "_" + jug.playerID.ToString();
-            cosasVistas[j] = cosa;
-            if(cosasTiempo.Count > j)
-                cosasTiempo[j] = 0;
-            if(cosasSteps.Count > j)
-                cosasSteps[j] = 0;
+        Vector3 posBuscar = jug.transform.position + ((jug.transform.position - transform.position).normalized * 0.1f);
+        //Debug.DrawLine(posBuscar, posBuscar + Vector3.up, Color.cyan);
+        para = false;
+        //Debug.Break();
+        if ( j > -1)
+        {
+            if (pensamientos[j].datos.Length == 2)
+            {
+                pensamientos[j].datos[0] = new Dato(posBuscar);
+                pensamientos[j].datos[1] = new Dato(jug.playerID);
+            }
+            else
+            {
+                Dato[] datos = new Dato[2];
+                datos[0] = new Dato(posBuscar);
+                datos[1] = new Dato(jug.playerID);
+                pensamientos[j].datos = datos;
+
+            }
+
+            pensamientos[j].tiempo = 0;
+            pensamientos[j].step = 0;
         }
         else
         {
-            string cosa = "chkZone_" + VectorAString(jug.transform.position) + "_" + jug.playerID.ToString();
-            cosasVistas.Add(cosa);
+            Dato dato_pos = new Dato(posBuscar);
+            Dato dato_id = new Dato(jug.playerID);
+            Pensamiento pensam_busca = new Pensamiento(Pensamiento.CHECK_ZONA, dato_pos, dato_id);
+            /*string cosa = "chkZone_" + VectorAString(jug.transform.position) + "_" + jug.playerID.ToString();
+            cosasVistas.Add(cosa);*/
+            pensamientos.Add(pensam_busca);
         }
     }
+
     IEnumerator CuentaTBalas()
     {
         print("set segundos");
@@ -2160,8 +1781,17 @@ public class Soldier : MonoBehaviour
     IEnumerator TiempoBalas()
     {
         yield return StartCoroutine(CuentaTBalas());
-        print("set 0");
-        trailBala.positionCount = 0;
+        print("set 0"); 
+        int cantPos = trailBala.positionCount - 2;
+        if (cantPos <= 0)
+            trailBala.positionCount = 0;
+        Vector3[] posiciones = new Vector3[cantPos];
+        for (int i = 0; i < trailBala.positionCount - 2; i++)
+        {
+            posiciones[i] = trailBala.GetPosition(i + 2);
+        }
+        trailBala.positionCount = cantPos;
+        trailBala.SetPositions(posiciones);
 
     }
 
@@ -2172,7 +1802,7 @@ public class Soldier : MonoBehaviour
 
     public bool EnAlerta()
     {
-        return cosasVistas[0].Contains("verAJug");
+        return ContienePensamiento(Pensamiento.JUGADOR);
     }
 
     public void SonidoRadio(float radius)
@@ -2203,7 +1833,7 @@ public class Soldier : MonoBehaviour
                     sitio = sitio.Replace("3", "");
                     sitio = sitio.Replace("4", "");
 
-                    informacion.Add("The soldier patrols around the " + sitio);
+                    informacion.Add("The soldier patrols around the " + sitio+ ";" + infoClave.ToString());
                 }
                 else
                 {
@@ -2212,11 +1842,11 @@ public class Soldier : MonoBehaviour
 
                     if (vestimenta[1] == "-")
                     {
-                        informacion.Add("The soldier doesn't wear a " + vestimenta[0]);
+                        informacion.Add("The soldier doesn't wear a " + vestimenta[0]+ ";" + infoClave.ToString());
                     }
                     else
                     {
-                        informacion.Add("The soldier wears a " + vestimenta[1] + " " + vestimenta[0]);
+                        informacion.Add("The soldier wears a " + vestimenta[1] + " " + vestimenta[0]+ ";" + infoClave.ToString());
                     }
                 }
                 break;
@@ -2282,5 +1912,565 @@ public class Soldier : MonoBehaviour
 
     }
 
+    void ReproduceSonido(AudioClip clip, float volumeMult = 1)
+    {
+        sonidoSoldado.pitch = 1;
+        if (sonidoSoldado.spatialBlend == 1)
+            sonidoSoldado.PlayOneShot(clip, volumeMult);
+        else
+            FindObjectOfType<GameManager>().SonidoFisico(sonidoSoldado, clip, 2, 0, volumeMult);
+    }
+
+    void SetDestination(Vector3 destination_, bool override_ = false)
+    {
+        destination = destination_;
+        if (override_)
+            agente.SetDestination(destination);
+    }
+
+    public bool ContienePensamiento(int tipo)
+    {
+        for(int i = 0; i < pensamientos.Count; i++)
+        {
+            if (pensamientos[i].tipo == tipo)
+                return true;
+        }
+        return false;
+    }
+
+
+    public bool ContieneExacPensamiento(int tipo, Vector3 sitio)
+    {
+        for (int i = 0; i < pensamientos.Count; i++)
+        {
+            if (pensamientos[i].tipo == tipo && pensamientos[i].datos[0].GetVector() == sitio)
+                return true;
+        }
+        return false;
+    }
+
+    public int IndexOfPensamiento(int tipo)
+    {
+        for(int i = 0; i < pensamientos.Count; i++)
+        {
+            if (pensamientos[i].tipo == tipo)
+                return i;
+        }
+        return -1;
+    }
+
+    public void ActualizaPensamiento()
+    {
+        pensamiento_step = (pensamiento_step + 1 + ID) % 20;
+    }
+
+    public bool EstaPensando()
+    {
+        return pensamiento_step == 0;
+    }
+
+    public Vector3 Velocity()
+    {
+        return agente.enabled ? agente.desiredVelocity : Vector3.zero;
+    }
+
+    void PersigueJugador()
+    {
+        pensamientos[0].tiempo -= Time.deltaTime;
+        //Si ve al jugador, que le tome un segundo reaccionar
+        if (pensamientos[0].step == -2)
+        {
+            if (tiempoPausaPPK <= 0)
+            {
+                pensamientos[0].step = -1;
+                FindObjectOfType<GameManager>().AddAlerta(this, overlook: true);
+                ReproduceSonido(noticeSonido);
+            }
+            return;
+        }
+        else if (pensamientos[0].step == -3)
+        {
+            tiempoPausaPPK = .5f;
+            pensamientos[0].step = -2;
+            return;
+        }
+
+        //Pone el sonido para que los otros lo detecten
+        if (pensamientos[0].step == -1)
+        {
+            sonido.gameObject.SetActive(true);
+            //Radio amplio, las alertas penalizan
+            //9 parece que es demasiado injusto
+            sonido.GetComponent<SphereCollider>().radius = 6.75f;
+            foreach (Snake jug in FindObjectsOfType<Snake>())
+            {
+                if (jug.playerID == pensamientos[0].datos[pensamientos[0].datos.Length - 1].GetInt())
+                {
+                    sonido.jug = jug;
+                    break;
+                }
+            }
+
+            pensamientos[0].step = 0;
+            return;
+        }
+        sonido.time = pensamientos[0].tiempo;
+        Vector3 sitioPos = pensamientos[0].datos[0].GetVector();
+        //Apunta si lo tiene a tiro y no lleva un rehen
+        bool rehenSnake = pensamientos[0].datos[3].GetInt() == 1;
+        if (rehenSnake)
+        {
+            rehenSnake = Vector3.Dot(Rig.forward, pensamientos[0].datos[4].GetVector()) < 0.1f;
+        }
+
+        apuntar = pensamientos[0].tiempo > 2.0f && puedeDisparar && !rehenSnake;//pensamientos[0].datos[1].GetInt() == 1;
+
+        //Si no puede disparar intenta alejarse un poco del jugador
+
+        //if (!puedeDisparar && distActual < distNiveles[1])
+        //{
+        //    CorreDe(sitioPos);
+        //}
+
+        if (pensamientos[0].step == 0)
+            AddGolpe();
+
+        sitioApuntar = sitioPos;
+
+        //Si pierde al jugador, que transforme esta instruccion a checkear la zona donde lo perdió
+        if (pensamientos[0].tiempo < 0)
+        {
+            //Lo intentamos quitar de asumidos si esta ahi
+            vistaCol.GetComponent<VistaSoldado>().QuitaAsumido(pensamientos[0].ultimoDato().GetInt());
+            vistaCol.GetComponent<VistaSoldado>().QuitaPerseguido(pensamientos[0].ultimoDato().GetInt());
+
+            //Debug.Break();
+
+            Dato datoPos = new Dato(sitioPos);
+            Dato datoID = new Dato(pensamientos[0].ultimoDato().GetInt());//new Dato(pensamientos[0].datos[pensamientos[0].datos.Length - 1].GetInt());
+            pensamientos[0] = new Pensamiento(Pensamiento.CHECK_ZONA, datoPos, datoID);
+
+            FindObjectOfType<GameManager>().AddAlerta(this, true);
+            FindObjectOfType<GameManager>().AddAlerta(this, false, true);
+            Agachate(false);
+            return;
+        }
+
+        //Hacer tácticas de combate
+    }
+
+    void CorreDe(Vector3 pos)
+    {
+
+        Vector3 direccion = (pos - transform.position).normalized;
+        Vector3 direccionOpuesta = transform.position - (direccion * 5);
+        SetDestination(direccionOpuesta);
+    }
+
+    public bool HaLlegado()
+    {
+        Vector2 posTop = new Vector2(transform.position.x, transform.position.z);
+        Vector2 destTop = new Vector2(destination.x, destination.z);
+
+        bool res = (Vector2.SqrMagnitude(posTop - destTop) < 0.1f) || (Vector3.SqrMagnitude(agente.desiredVelocity) == 0 && tDesiredVelocity <= 0);
+        if (Vector3.SqrMagnitude(agente.desiredVelocity) == 0 && tDesiredVelocity <= 0)
+        {
+            tDesiredVelocity = 0.5f;
+            Debug.DrawRay(transform.position, Vector3.up, new Color(.5f, .1f, .5f));
+            //Debug.Break();
+        }
+        else if (res)
+        {
+            Debug.DrawRay(transform.position, Vector3.up, Color.black);
+        }
+        return res;
+    }
+
+    void CompletaPensamiento()
+    {
+
+        //(cosasVistas.Count > 1)
+        if (pensamientos.Count > 1)
+            ReordenaCosasVistas();
+        //para = true;
+        //Formato de cosas vistas
+
+        /*
+        tipo -> tipo de pensamiento
+        tiempo -> tiempo asociado al paso del pensamiento
+        step -> paso/proceso en el que se encuentra el pensamiento
+        datos -> datos asociados
+            datos[0] -> posicion (OBLIGATORIO)
+
+        En caso de que el pensamiento sea seguir a jugador
+            datos[1] -> en caja
+            datos[2] -> si tiene a alguien agarrado
+            datos[3] -> a donde mira, si no tiene a nadie agarrado, V3zero
+            datos[4] -> tactica de combate
+            datos[5] -> id jugador
+
+        En caso de que el pensamiento sea esquivar una granada
+            datos[1] -> id del explosivo
+            datos[2] -> si el tirador es este soldado
+
+        En caso de que el pensamiento sea chequear una zona
+            datos[1] -> id de jugador si checkea la zona donde lo perdio de vista
+
+        En caso de que el pensamiento sea levantar a un compañero
+            datos[1] -> id del compañero
+
+        */
+        correr = true;
+        if (agachado && pensamientos[0].tipo != Pensamiento.JUGADOR)
+            agachado = false;
+
+
+        //Dependiendo del pensamiento prioritario (el primero), hace una cosa u otra
+        //Se aleja de los explosivos
+        if (pensamientos[0].tipo == Pensamiento.EXPLOSIVO_CERCA)
+        {
+            if (pensamientos[0].step == 0)
+            //(cosasSteps[0] == 0)
+            {
+                agachado = false;
+                pensamientos[0].tiempo = 1f;//cosasTiempo[0] = 1f;
+                pensamientos[0].step = 1;//cosasSteps[0] = 1;
+            }
+
+            //cosasTiempo[0] -= Time.deltaTime;
+            pensamientos[0].tiempo -= Time.deltaTime;
+
+            Vector3 direccion = (pensamientos[0].datos[0].GetVector() - transform.position).normalized;
+            Vector3 direccionOpuesta = transform.position - (direccion * 5);
+            if (Vector3.Distance(transform.position, pensamientos[0].datos[0].GetVector()) <= 6)
+            {
+                SetDestination(direccionOpuesta);
+            }
+
+            Debug.DrawLine(transform.position, direccionOpuesta, Color.white);
+            if (pensamientos[0].tiempo < 0)
+            //(cosasTiempo[0] < 0)
+            {
+                pensamientos.RemoveAt(0);
+                //cosasVistas.RemoveAt(0);
+                //cosasSteps.RemoveAt(0);
+                //cosasTiempo.RemoveAt(0);
+                int siguiente = (index + 1) % posiciones.Count;
+                SetDestination(posiciones[siguiente]);
+            }
+        }
+
+        //Si no tiene un arma, que se diriga al armería
+        else if (pensamientos[0].tipo == Pensamiento.FALTA_ARMA)
+        {
+            if (pensamientos[0].step == 0)//(cosasSteps[0] == 0)
+            {
+                SetDestination(pensamientos[0].datos[0].GetVector());
+            }
+            else if (pensamientos[0].step == 1 && agente.remainingDistance == 0)//(cosasSteps[0] == 1 && agente.remainingDistance == 0)
+            {
+                if (Vector3.Distance(agente.destination, transform.position) < 1f)
+                {
+                    pensamientos[0].step = 2;//cosasSteps[0] = 2;
+                    pensamientos[0].tiempo = 1.5f;//cosasTiempo[0] = 1.5f;
+                }
+            }
+            else if (pensamientos[0].step == 2)//(cosasSteps[0] == 2)
+            {
+                //cosasTiempo[0] -= Time.deltaTime;
+                pensamientos[0].tiempo -= Time.deltaTime;
+                if (pensamientos[0].tiempo <= 0)//(cosasTiempo[0] <= 0)
+                {
+                    string armasQueTiene = "";
+                    for (int i = 0; i < armasSoldado.Count; i++)
+                    {
+                        //Granadas  implementadas lets gooooooo
+                        balas[i] = Mathf.Max(balas[i], (2 * armasSoldado[i].balasArma() + Random.Range(0, 1 + (2 * armasSoldado[i].balasArma()))));
+                        balasFront[i] = Mathf.Max(balasFront[i], (armasSoldado[i].balasArma()));
+                        armasQueTiene += armasSoldado[i].nombre;
+                    }
+                    if (armasSoldado.Count < 2)
+                    {
+                        //Quitamos las granadas porque no se hacerlas basicamente
+                        /*
+                        if (!armasQueTiene.Contains("GRENADE"))
+                        {
+                            RecibeArma(Resources.Load<Arma>("Armas/GRENADE"));
+                        }
+                        */
+                        if (!armasQueTiene.Contains("FAMAS"))
+                        {
+                            RecibeArma(Resources.Load<Arma>("Armas/FAMAS"));
+                        }
+                        if (!armasQueTiene.Contains("BERETTA"))
+                        {
+                            RecibeArma(Resources.Load<Arma>("Armas/BERETTA"));
+                        }
+                    }
+                    pensamientos.RemoveAt(0);
+                    //cosasVistas.RemoveAt(0);
+                    //cosasTiempo.RemoveAt(0);
+                    //cosasSteps.RemoveAt(0);
+                }
+            }
+        }
+
+        //Si ve un compañero inconsciente, que vaya a verlo y a despertarlo
+        else if (pensamientos[0].tipo == Pensamiento.COMP_INC)
+        {
+            //Se queda 3 segundos mirando el cuerpo
+            if (pensamientos[0].step == 0 && pensamientos[0].tiempo > 0)//(cosasSteps[0] == 0 && cosasTiempo[0] > 0)
+            {
+                //cosasTiempo[0] -= Time.deltaTime;
+                pensamientos[0].tiempo -= Time.deltaTime;
+                if (pensamientos[0].tiempo < 0)//(cosasTiempo[0] < 0)
+                {
+                    //cosasSteps[0] = 1;
+                    //cosasTiempo[0] = 2;
+
+                    pensamientos[0].step = 1;
+                    pensamientos[0].tiempo = 2;
+
+                    //Vector3 direccionMirar = -transform.position + sitioPos;
+                    Vector3 direccionMirar = -transform.position + pensamientos[0].datos[0].GetVector();
+                    direccionMirar *= 0.85f;
+                    direccionMirar += transform.position;
+                    SetDestination(direccionMirar);
+                }
+
+            }
+            else if (pensamientos[0].step == 0 && pensamientos[0].tiempo == 0)//(cosasSteps[0] == 0 && cosasTiempo[0] == 0)
+            {
+                //Vector3 direccionMirar = -transform.position + sitioPos;
+                Vector3 direccionMirar = -transform.position + pensamientos[0].datos[0].GetVector();
+                direccionMirar = direccionMirar.normalized * 0.01f;
+                direccionMirar += transform.position;
+                SetDestination(direccionMirar);
+                //cosasTiempo[0] = 3;
+                pensamientos[0].tiempo = 3;
+                ReproduceSonido(Resources.Load<AudioClip>("Audio/Soldiers/WhosThat" + terminoGenero));
+            }
+
+            else if (pensamientos[0].step == 1 && agente.remainingDistance == 0)//(cosasSteps[0] == 1 && agente.remainingDistance == 0)
+            {
+                pensamientos[0].tiempo -= Time.deltaTime;//cosasTiempo[0] -= Time.deltaTime;
+                                                         //Debug.DrawLine(transform.position, sitioPos, Color.red);
+                if (pensamientos[0].tiempo < 0)//(cosasTiempo[0] < 0)
+                {
+                    //Tira un rayo para detectar al compañero
+                    RaycastHit rayoDet;
+                    LayerMask layersADet = new LayerMask();
+                    layersADet = (1 << LayerMask.NameToLayer("EscenarioColliders")) | (1 << LayerMask.NameToLayer("Interaccion"));
+
+                    if (Physics.Raycast(transform.position,
+                        (pensamientos[0].datos[0].GetVector() - transform.position).normalized, out rayoDet, Mathf.Infinity, layersADet))
+                    {
+                        print(rayoDet.collider.name);
+                        if (rayoDet.collider.gameObject.name == "InteraccionSoldadoInc")
+                        {
+                            Soldier soldadoCaido = rayoDet.collider.transform.parent.parent.GetComponent<Soldier>();
+                            print(soldadoCaido.transform.name);
+                            if (soldadoCaido.EstaVivo())
+                            {
+                                print("levantalo");
+                                //soldadoCaido.BajaOxigeno(-100);
+                                ReproduceSonido(Resources.Load<AudioClip>("Audio/Soldiers/GetOutOfTheWay" + terminoGenero));
+                                Golpe(3, true);
+                            }
+                            else
+                            {
+                                print("pasa de el");
+                                //Le tapa con una manta y eso
+                                //Poner sonido cremallera
+                                soldadoCaido.Manta();
+                            }
+
+                            pensamientos[0].step = 2;
+                            pensamientos[0].tiempo = 2;
+                            //cosasSteps[0] = 2;
+                            //cosasTiempo[0] = 2;
+
+                        }
+                        else
+                        {
+                            Vector3 nuevoVector = Vector3.Cross(Rig.forward, transform.up);
+                            SetDestination(transform.position + (.5f * nuevoVector));
+                            pensamientos[0].tiempo = 2;
+                            //cosasTiempo[0] = 2;
+
+                        }
+                    }
+                    else
+                    {
+                        //print("hola");
+                        Vector3 nuevoVector = Vector3.Cross(Rig.forward, transform.up);
+                        SetDestination(transform.position + (.5f * nuevoVector));
+                        pensamientos[0].tiempo = 2;
+                        //cosasTiempo[0] = 2;
+                    }
+
+
+                }
+            }
+            // Step = 1 espera un momento antes de despertarlo
+
+            //Step = 2 si no esta muerto le mete una patada y se queda un rato esperando -> sale del bucle
+            else if (pensamientos[0].step == 2)//(cosasSteps[0] == 2)
+            {
+                pensamientos[0].tiempo -= Time.deltaTime;//cosasTiempo[0] -= Time.deltaTime;
+                if (pensamientos[0].tiempo < 0)//(cosasTiempo[0] < 0)
+                {
+                    pensamientos.RemoveAt(0);
+                }
+            }
+        }
+
+        //Si ve al jugador, lo persigue o alerta al resto(dependiendo de si tiene arma o no)
+        else if (pensamientos[0].tipo == Pensamiento.JUGADOR)
+        {
+            PersigueJugador();
+        }
+
+        //Si le toman como rehén
+        else if (pensamientos[0].tipo == Pensamiento.REHEN)
+        {
+            if (pensamientos[0].step == 0)//(cosasSteps[0] == 0)
+            {
+                cabeza.GetComponent<RecibeSonidos>().disabled = true;
+                pensamientos[0].tiempo = 10;//cosasTiempo[0] = 10;
+                pensamientos[0].step = 1;//cosasSteps[0] = 1;
+                SetDestination(transform.position + pensamientos[0].datos[0].GetVector());
+                interacCol.name = "InteraccionSoldadoRehen";
+            }
+            else if (pensamientos[0].step == 1)//(cosasSteps[0] == 1)
+            {
+                pensamientos[0].tiempo -= Time.deltaTime;//cosasTiempo[0] -= Time.deltaTime;
+                if (pensamientos[0].tiempo <= 0)//(cosasTiempo[0] <= 0)
+                {
+                    cabeza.GetComponent<RecibeSonidos>().disabled = false;
+                    pensamientos.RemoveAt(0);
+                    interacCol.name = "InteraccionSoldado";
+                }
+            }
+        }
+
+        //Checkea zona | paso par : va hacia un sitio aleatorio | paso impar : mira hacia un sitio aleatorio 10 segundos. En 10 pasos termina
+        else if (pensamientos[0].tipo == Pensamiento.CHECK_ZONA)
+        {
+            if (pensamientos[0].step % 2 == 0 && pensamientos[0].step < 10)//(cosasSteps[0] % 2 == 0 && cosasSteps[0] < 10)
+            {
+                //se salta este paso
+                agente.SetDestination(pensamientos[0].datos[0].GetVector());
+                if (agente.remainingDistance <= agente.radius)
+                {
+                    pensamientos[0].step += 1;//cosasSteps[0] += 1;
+                    pensamientos[0].tiempo = 10;//cosasTiempo[0] = 10;
+
+                    float newX = Random.Range(-1.0f, 1.0f);
+                    float newZ = Random.Range(-1.0f, 1.0f);
+
+                    agente.SetDestination(transform.position + (new Vector3(newX, 0, newZ).normalized * 0.1f));
+                    //para = true;
+                }
+            }
+            else if (pensamientos[0].step % 2 == 1 && pensamientos[0].step < 10)//(cosasSteps[0] % 2 == 1 && cosasSteps[0] < 10)
+            {
+                pensamientos[0].tiempo -= Time.deltaTime;//cosasTiempo[0] -= Time.deltaTime;
+                if (pensamientos[0].tiempo <= 0)//(cosasTiempo[0] <= 0)
+                {
+                    //para = false;
+                    pensamientos[0].step += 1;//cosasSteps[0] += 1;
+                    pensamientos[0].tiempo = 0;//cosasTiempo[0] = 0;
+
+                    float newAngle = Random.Range(-3.139f, 3.14f);
+                    float newRadius = Random.Range(0.1f, 2.5f);
+
+                    Vector3 newPos = new Vector3(Mathf.Cos(newAngle), 0, Mathf.Sin(newAngle)) * newRadius;
+                    Vector3 sitioPos = pensamientos[0].datos[0].GetVector();
+                    sitioPos += newPos;
+                    pensamientos[0].datos[0] = new Dato(sitioPos);
+                    //cosasVistas[0] = nuevaCosa;
+
+                    SetDestination(sitioPos);
+
+                }
+            }
+
+            else
+            {
+                //Si busca a un jugador en concreto
+                if (pensamientos[0].datos.Length > 1)//("0123".Contains(modulos[modulos.Length - 1]))
+                {
+                    FindObjectOfType<GameManager>().AddAlerta(this, true, true);
+                }
+                pensamientos.RemoveAt(0);
+                //cosasSteps.RemoveAt(0);
+                //cosasTiempo.RemoveAt(0);
+
+
+            }
+
+            //Debug.DrawRay(sitioPos, Vector3.up, Color.black);
+        }
+
+    }
+
+    public Arma Arma()
+    {
+        return armaEnMano;
+    }
+    public int[] balasArma()
+    {
+        if(armaEnMano != null)
+        {
+            int indexArma = armasSoldado.IndexOf(armaEnMano);
+            if (armaEnMano.TipoObjeto() >= 1)
+            {
+                return new int[] { balas[indexArma], balasFront[indexArma] };
+            }
+            else
+                return new int[] { balas[indexArma], 0 };
+        }
+        return new int[] { 0, 0 };
+    }
+
+    public void PierdeArma(Arma arma)
+    {
+        if (!armasSoldado.Contains(arma))
+            return;
+        if (armaEnMano == arma)
+            armaEnMano = null;
+        int indexArma = armasSoldado.IndexOf(arma);
+        armasSoldado.RemoveAt(indexArma);
+        balas.RemoveAt(indexArma);
+        balasFront.RemoveAt(indexArma);
+        SetArma();
+    }
+
+    public void Dolor(bool sonido = true)
+    {
+        if (sonido)
+            ReproduceSonido(dolorSonido);
+
+        soldierAnimator.Play("DolorLayer.Dolor", 2, 0);
+
+    }
+
+    public void SpinCQC(float f)
+    {
+        soldierAnimator.SetFloat("ThrowSent", f);
+        if(f >= 1.0f)
+        {
+            soldierAnimator.Play("Base Layer.GenomeGetToThrow", 0, 0);
+        }
+    }
+
+    public bool counter()
+    {
+        bool counterGolpe = soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePrepPunch");
+        bool counterCulatazo = soldierAnimator.GetCurrentAnimatorStateInfo(1).IsName("GenomePrepCulatazo");
+
+        return counterGolpe || counterCulatazo;
+    }
 
 }

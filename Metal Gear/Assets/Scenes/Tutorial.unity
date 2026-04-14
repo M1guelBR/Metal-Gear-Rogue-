@@ -881,7 +881,7 @@ Light:
   m_RenderMode: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 8192
+    m_Bits: 24576
   m_RenderingLayerMask: 1
   m_Lightmapping: 4
   m_LightShadowCasterMode: 0
@@ -1295,7 +1295,7 @@ PrefabInstance:
     - target: {fileID: 8370982902876585346, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
       propertyPath: informacion.Array.data[0]
-      value: The exit is around the corner
+      value: The exit is around the corner;1
       objectReference: {fileID: 0}
     - target: {fileID: 8370982902876585347, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
@@ -1361,6 +1361,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8713019734379638876, guid: e258633b1c5277f4da7924ca545025cc,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
@@ -4059,6 +4064,7 @@ GameObject:
   - component: {fileID: 1923624375}
   - component: {fileID: 1923624374}
   - component: {fileID: 1923624373}
+  - component: {fileID: 1923624376}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -4088,9 +4094,17 @@ MonoBehaviour:
   - {fileID: 495904515}
   columnas:
   - {fileID: 746491686}
-  jugadores: []
+  jugadores:
+  - {fileID: 2091006068}
   cambiaInfo: 0
   autoServer: 1
+  alturasPlantas:
+  - -1.5
+  renderers:
+  - {fileID: 11400000, guid: 4a8e21d5c33334b11b34a596161b9360, type: 2}
+  - {fileID: 11400000, guid: 7bcb5de53d3850447b199f2238e0690e, type: 2}
+  - {fileID: 11400000, guid: 3289482a8c6df164c9bc74e935855846, type: 2}
+  - {fileID: 11400000, guid: 7c152e02bef7edc438cf5b0495282975, type: 2}
 --- !u!4 &1923624372
 Transform:
   m_ObjectHideFlags: 0
@@ -4233,7 +4247,35 @@ AudioListener:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1923624370}
-  m_Enabled: 0
+  m_Enabled: 1
+--- !u!114 &1923624376
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1923624370}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d68a58e6f17cbc48b0d5ec7f5a81776, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sensitivity:
+  - 0.75
+  - 0.75
+  - 0.75
+  - 0.75
+  invertYT: 01010101
+  invertXT: 00000000
+  invertYF: 00000000
+  invertXF: 00000000
+  fullscreen: 1
+  musicVol: 1
+  effVol: 1
+  TFov: 4b0000004b0000004b0000004b000000
+  FFov: 4b0000004b0000004b0000004b000000
+  mixer: {fileID: 24100000, guid: d9ba6030548f93945b288330c5ea4b02, type: 2}
+  autoLoad: 1
 --- !u!1 &2010602500
 GameObject:
   m_ObjectHideFlags: 0
@@ -4388,7 +4430,7 @@ PrefabInstance:
     - target: {fileID: 8370982902876585346, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
       propertyPath: informacion.Array.data[0]
-      value: The soldier around the corner is the elimination target
+      value: The soldier around the corner is the elimination target;0
       objectReference: {fileID: 0}
     - target: {fileID: 8370982902876585347, guid: e258633b1c5277f4da7924ca545025cc,
         type: 3}
@@ -4454,6 +4496,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Enabled
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8713019734379638876, guid: e258633b1c5277f4da7924ca545025cc,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
@@ -4587,6 +4634,11 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8713019734379638876, guid: e258633b1c5277f4da7924ca545025cc,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: e258633b1c5277f4da7924ca545025cc, type: 3}
@@ -4658,6 +4710,41 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6163564001370348323, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6163564001370348323, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6163564001370348323, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.width
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6163564001370348323, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_NormalizedViewPortRect.height
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7331504909688281719, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_text
+      value: COMPLETE THE TUTORIAL
+      objectReference: {fileID: 0}
+    - target: {fileID: 7331504910005788741, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: autoIniciar
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7331504911190304893, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 9120078010427709812, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
         type: 3}
       propertyPath: m_Name
@@ -4666,6 +4753,18 @@ PrefabInstance:
     m_RemovedComponents: []
     m_AddedGameObjects: []
   m_SourcePrefab: {fileID: 100100000, guid: dc51034ed1ce52f46a5b7d5cd9df6997, type: 3}
+--- !u!114 &2091006068 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8681877372661416599, guid: dc51034ed1ce52f46a5b7d5cd9df6997,
+    type: 3}
+  m_PrefabInstance: {fileID: 2091006067}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bddbb2d884807754b880fbfe576181f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1001 &2103266835
 PrefabInstance:
   m_ObjectHideFlags: 0
